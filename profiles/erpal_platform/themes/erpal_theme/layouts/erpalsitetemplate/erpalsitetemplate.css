@@ -1,0 +1,29 @@
+
+.erpalsitetemplate {
+/*  overflow: hidden;  */
+  margin-top: 0;
+  padding-top: 0;
+}
+.erpalsitetemplate-pageheader,
+.erpalsitetemplate-bottom {
+  width: 99.9%;
+  clear: both;
+}
+
+.erpalsitetemplate-pageheaderleft {
+  float: left;
+  width: 25%;
+}
+.erpalsitetemplate-pageheaderright {
+  float: left;
+  width: 74.9%;
+}
+
+.erpalsitetemplate-left {
+  float: left;
+  width: 25%;
+}
+.erpalsitetemplate-right {
+  float: left;
+  width: 74.9%;
+}

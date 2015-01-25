@@ -1,0 +1,22 @@
+.contact-data-privacy {
+  &:before {
+    @include font-awesome-icon(asterisk); // default-icon
+    opacity: .5;
+    margin-right: 5px;
+  }
+
+  $icons: (
+    'private': user,
+    'public': globe
+  );
+
+  @each $data, $icon in $icons {
+    &-#{$data}:before {
+      @include font-awesome-content($icon);
+    }
+  }
+
+  div {
+    display: inline;
+  }
+}

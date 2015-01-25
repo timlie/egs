@@ -1,0 +1,492 @@
+<?php
+
+/**
+ * @file
+ * Code for the ERPAL PM functional module.
+ */
+
+/**
+ * Implements hook_node_info().
+ */
+function erpal_project_node_info() {
+  return array(
+    'erpal_task' => array(
+      'name' => t('Task'),
+      'base' => 'node_content',
+      'description' => t('ERPAL Task'),
+      'custom' => TRUE,
+      'locked' => TRUE,
+    ),
+    'erpal_project' => array(
+      'name' => t('Project'),
+      'base' => 'node_content',
+      'description' => t('ERPAL Project'),
+      'custom' => TRUE,
+      'locked' => TRUE,
+    ),
+  );
+}
+
+/**
+ * Implements hook_views_api().
+ */
+function erpal_project_views_api() {
+  return array(
+    'api' => 3,
+  );
+}
+
+/**
+ * Implements hook_form().
+ */
+function erpal_project_form($node, $form_state) {
+  return node_content_form($node, $form_state);
+}
+
+/**
+ * Implements hook_node_type_insert().
+ */
+function erpal_project_node_type_insert($content_type) {
+
+  // Include file with fields.
+  module_load_include('inc', 'erpal_project', 'erpal_project.fields');
+
+  $types = array(
+    'erpal_task',
+    'erpal_project',
+  );
+
+  // Add fields for content types erpal_task, erpal_project.
+  if (in_array($content_type->type, $types)) {
+    $fields = _erpal_project_default_fields();
+    $instances = _erpal_project_default_field_instances();
+    erpal_core_add_fields($fields[$content_type->type], 'field');
+    erpal_core_add_fields($instances[$content_type->type], 'instance');
+
+    // Add field to output for refers with taks.
+    $fields = erpal_project_output_fields();
+    erpal_core_add_fields($fields['fields'], 'field');
+    erpal_core_add_fields($fields['instances'], 'instance');
+
+    // Add field to budget for refers with taks.
+    $fields = erpal_project_budget_fields();
+    erpal_core_add_fields($fields['fields'], 'field');
+    erpal_core_add_fields($fields['instances'], 'instance');
+  }
+
+}
+
+/**
+ * Helper function, check if output is billable.
+ */
+function erpal_project_time_output_is_billable($output) {
+  $field_output_billable = field_get_items('erpal_output', $output, 'field_output_billable');
+  if (!empty($field_output_billable[0]['value'])) {
+    return TRUE;
+  }
+  else {
+    return FALSE;
+  }
+}
+
+/**
+ * Implements hook_output_budget_find().
+ */
+function erpal_project_output_budget_find($output) {
+  if ($output->type == 'time') {
+    $output_wrapper = entity_metadata_wrapper('erpal_output', $output);
+    $referenced_node = $output_wrapper->field_output_time_refers->value();
+    if (!empty($referenced_node)) {
+      // Take fields field_line_item, field_payment_modality from different types.
+      list($field_line_item, $field_payment_modality, $field_status, $resource_id) = erpal_project_fields($referenced_node);
+      if (!empty($field_line_item)) {
+        $line_item_wrapper = entity_metadata_wrapper('commerce_line_item', $field_line_item[0]['target_id']);
+
+        // If task or project have unit item, not need search budget.
+        if ($line_item_wrapper->field_line_item_unit->raw() == 'item') {
+          return;
+        }
+      }
+
+      // Try to search and budget if not exists.
+      $is_billable = $output_wrapper->field_output_billable->value();
+      if (!empty($is_billable) && $output_wrapper->saldo->raw() > 0) {
+        return erpal_project_tree_search_budgets($output, $referenced_node);
+      }
+    }
+  }
+
+  // Try to search and budget if not exists.
+  if ($output->type == 'money') {
+
+    $output_wrapper = entity_metadata_wrapper('erpal_output', $output);
+    if ($output_wrapper->saldo->raw() > 0) {
+
+      return erpal_project_search_money_budgets($output);
+    }
+  }
+}
+
+/**
+ * Implements hook_resource_find().
+ */
+function erpal_project_output_resource_find($output) {
+  $output_wrapper = entity_metadata_wrapper('erpal_output', $output);
+
+  if ($output->type == 'time') {
+    $resource_id = $output_wrapper->field_resource->raw();
+    if (empty($resource_id)) {
+
+      $referenced_node = $output_wrapper->field_output_time_refers->value();
+      if (!empty($referenced_node)) {
+
+        $resource_id = $output_wrapper->field_output_time_refers->field_resource->raw();
+        if (!empty($resource_id)) {
+          $output_wrapper->field_resource = $resource_id;
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Search time budgets in tree.
+ */
+function erpal_project_tree_search_budgets($output, $referenced_node) {
+  $output_wrapper = entity_metadata_wrapper('erpal_output', $output);
+  $budgets = array();
+
+  // Search budget in own resource.
+  $resource_id = $output_wrapper->field_resource->raw();
+  if (!empty($resource_id)) {
+    $budgets += erpal_project_search_time_budgets($resource_id, $output);
+  }
+
+  // Search budget in parent tasks resource.
+  if ($output_wrapper->saldo->raw() > 0 && empty($output_wrapper->field_output_budget[0])) {
+    $budgets += erpal_project_parent_search_time_budgets($output, $referenced_node);
+  }
+
+  // Search budget in project resource.
+  if ($output_wrapper->saldo->raw() > 0 && empty($output_wrapper->field_output_budget[0])) {
+    $budgets += erpal_project_project_search_time_budgets($output, $referenced_node);
+  }
+  return $budgets;
+}
+
+/**
+ * Search time budgets in parents.
+ */
+function erpal_project_parent_search_time_budgets($output, $referenced_node) {
+  $referenced_wrapper = entity_metadata_wrapper('node', $referenced_node);
+  $output_wrapper = entity_metadata_wrapper('erpal_output', $output);
+  $budgets = array();
+
+  if (isset($referenced_wrapper->field_task_parent)) {
+
+    $parent = $referenced_wrapper->field_task_parent->value();
+    if (!empty($parent)) {
+
+      $resource_id = $referenced_wrapper->field_task_parent->field_resource->raw();
+      if (!empty($resource_id)) {
+        $budgets += erpal_project_search_time_budgets($resource_id, $output);
+      }
+
+      if ($output_wrapper->saldo->raw() > 0) {
+        $budgets += erpal_project_parent_search_time_budgets($output, $parent);
+      }
+    }
+  }
+  return $budgets;
+}
+
+/**
+ * Search time budgets in project.
+ */
+function erpal_project_project_search_time_budgets($output, $referenced_node) {
+  $referenced_wrapper = entity_metadata_wrapper('node', $referenced_node);
+
+  if (isset($referenced_wrapper->field_task_project)) {
+
+    $project = $referenced_wrapper->field_task_project->value();
+    if (!empty($project)) {
+
+      $resource_id = $referenced_wrapper->field_task_project->field_resource->raw();
+      if (!empty($resource_id)) {
+        return erpal_project_search_time_budgets($resource_id, $output);
+      }
+    }
+  }
+  return array();
+}
+
+/**
+ * Search time budgets in resource.
+ */
+function erpal_project_search_time_budgets($resource_id, $output) {
+  $output_wrapper = entity_metadata_wrapper('erpal_output', $output);
+
+  // First try to find prepaid budget.
+  if ($output_wrapper->saldo->raw() > 0) {
+    $query = new EntityFieldQuery();
+    $suitable_budgets = $query->entityCondition('entity_type', 'erpal_budget')
+      ->entityCondition('bundle', $output->type)
+      ->fieldCondition('field_resource', 'target_id', $resource_id)
+      ->fieldOrderBy('field_budget_type', 'value', 'DESC')  // @todo known problem: doesn't include budgets without type.
+      ->fieldOrderBy('field_budget_available', 'value')
+      ->addTag('erpal_budget_available') // @see erpal_project_query_erpal_budget_available_alter().
+      ->execute();
+
+    if (!empty($suitable_budgets['erpal_budget'])) {
+      return array_keys($suitable_budgets['erpal_budget']);
+    }
+  }
+  return array();
+}
+
+/**
+ * Search money budgets in resource.
+ */
+function erpal_project_search_money_budgets($output) {
+  $output_wrapper = entity_metadata_wrapper('erpal_output', $output);
+
+  $resource_id = $output_wrapper->field_resource->raw();
+  if (empty($resource_id)) {
+
+    $query = drupal_get_query_parameters();
+    if (!empty($query['field_resource'])) {
+      $resource_id = $query['field_resource'];
+    }
+    else {
+      return array();
+    }
+  }
+
+  // Prepare query.
+  $query = new EntityFieldQuery();
+  $query->entityCondition('entity_type', 'erpal_budget')
+    ->entityCondition('bundle', $output->type)
+    ->fieldCondition('field_resource', 'target_id', $resource_id)
+    ->fieldOrderBy('field_budget_available', 'value')
+    ->addTag('erpal_budget_available');
+  $result = $query->execute();
+
+  // Return founded budgets.
+  if (!empty($result['erpal_budget'])) {
+    return array_keys($result['erpal_budget']);
+  }
+  return array();
+}
+
+/**
+ * Implements hook_query_TAG_alter().
+ *
+ * Adds 'OR' query to find only budgets with available > 0 or negative checked.
+ */
+function erpal_project_query_erpal_budget_available_alter(QueryAlterableInterface $query) {
+  $alias = '';
+
+  // Find table alias by table name.
+  $tables = $query->getTables();
+  foreach ($tables as $table_alias => $table_info) {
+    if ($table_info['table'] == 'field_data_field_budget_available') {
+      $alias = $table_alias;
+      break;
+    }
+  }
+
+  // Adds 'OR' query to find only budgets with available > 0 or negative checked.
+  if (!empty($alias)) {
+    $query->leftJoin('field_data_field_budget_negative', 'fbn', "$alias.entity_id = fbn.entity_id");
+    $or = db_or()
+      ->condition("$alias.field_budget_available_value", 0, '>')
+      ->condition("fbn.field_budget_negative_value", 0, '!=');
+    $query->condition($or);
+  }
+}
+
+/**
+ * Get fields from nodes which need for calculations.
+ */
+function erpal_project_fields($node, $recursive = FALSE) {
+  global $language, $user;
+
+  // Take fields field_line_item, field_payment_modality from different types.
+  switch ($node->type) {
+    case 'erpal_task':
+      $field_line_item = field_get_items('node', $node, 'field_task_line_item');
+      $field_payment_modality = field_get_items('node', $node, 'field_task_payment_modality');
+      $field_status = field_get_items('node', $node, 'field_task_status');
+
+      // If Task not have payment modality try to find in parent tasks or
+      // project.
+      if (empty($field_line_item) || empty($field_payment_modality)) {
+        if ($recursive) {
+          list($field_line_item, $field_payment_modality) = erpal_project_search_payment_modality($node);
+        }
+      }
+      break;
+
+    case 'erpal_project':
+      $field_line_item = field_get_items('node', $node, 'field_project_line_item');
+      $field_payment_modality = field_get_items('node', $node, 'field_project_payment_modality');
+      $field_status = field_get_items('node', $node, 'field_project_status');
+      break;
+  }
+  $field_resource = field_get_items('node', $node, 'field_resource');
+
+  return array(
+    $field_line_item,
+    $field_payment_modality,
+    $field_status,
+    $field_resource
+  );
+}
+
+/**
+ * Search payment modality for current task.
+ */
+function erpal_project_search_payment_modality($node) {
+
+  $field_task_parent = field_get_items('node', $node, 'field_task_parent');
+  if (!empty($field_task_parent) && !empty($field_task_parent[0]['target_id'])) {
+    $parent = node_load($field_task_parent[0]['target_id']);
+    list($field_line_item, $field_payment_modality, $field_status, $field_resource) = erpal_project_fields($parent, TRUE);
+    if (!empty($field_line_item) && !empty($field_payment_modality)) {
+      return array($field_line_item, $field_payment_modality);
+    }
+    else {
+      erpal_project_search_payment_modality($parent);
+    }
+  }
+  else {
+    $field_task_project = field_get_items('node', $node, 'field_task_project');
+    if (!empty($field_task_project) && !empty($field_task_project[0]['target_id'])) {
+      $project = node_load($field_task_project[0]['target_id']);
+      list($field_line_item, $field_payment_modality, $field_status, $field_resource) = erpal_project_fields($project);
+      if (!empty($field_line_item) && !empty($field_payment_modality)) {
+        return array($field_line_item, $field_payment_modality);
+      }
+    }
+  }
+  return array(FALSE, FALSE);
+}
+
+/**
+ * Get order properties by order id.
+ */
+function erpal_project_get_order_properties($order_id) {
+  // Load line item order properties.
+  return db_select('commerce_order')
+    ->fields('commerce_order')
+    ->condition('order_id', $order_id)
+    ->condition('type', 'commerce_order')
+    ->execute()
+    ->fetchAssoc();
+}
+
+/**
+ * Set acceptance output to delivered or not.
+ */
+function erpal_project_delivery($payment_modality, $line_item, $resource_id, $delivered = TRUE) {
+  // Search output acceptance.
+  $query = new EntityFieldQuery();
+  $query->entityCondition('entity_type', 'erpal_output')
+    ->entityCondition('bundle', 'acceptance')
+    ->fieldCondition('field_resource', 'target_id', $resource_id);
+  $result = $query->execute();
+  if (!empty($result['erpal_output'])) {
+    $output_ids = array_keys($result['erpal_output']);
+    foreach ($output_ids as $output_id) {
+      $output = erpal_output_load($output_id);
+      if ($delivered) {
+        $lang = field_language('erpal_output', $output, 'field_output_delivered');
+        $output->field_output_delivered[$lang][0]['value'] = 1;
+      }
+      else {
+        $output->field_output_delivered = array();
+      }
+
+      if ($delivered) {
+        $lang = field_language('erpal_output', $output, 'field_output_delivered_date');
+        $field = field_info_field('field_output_delivered_date');
+        $instance = field_info_instance('erpal_output', 'field_output_delivered_date', 'acceptance');
+        $items = date_default_value($field, $instance, $lang);
+        $output->field_output_delivered_date[$lang] = $items;
+      }
+      else {
+        $output->field_output_delivered_date = array();
+      }
+
+      // Up to date data in output.
+      if ($total = erpal_payment_modality_total($payment_modality, $line_item)) {
+        $lang = field_language('erpal_output', $output, 'field_output_unit');
+        $unit = units_unit_machine_name_load(strtolower($total['currency_code']));
+        $output->field_output_unit[$lang][0] = array(
+          'value' => commerce_currency_amount_to_decimal($total['amount'], $total['currency_code']),
+          'target_id' => $unit->umid,
+        );
+      }
+
+      erpal_output_save($output);
+    }
+  }
+}
+
+/**
+ * Search free payment modalities which have project.
+ */
+function erpal_project_get_free_payment_modalities($project) {
+
+  $orders = field_get_items('node', $project, 'field_project_order');
+  $project_payment_modality = field_get_items('node', $project, 'field_project_payment_modality');
+  
+  // Search payment modalities which have orders from current project.
+  $free_payment_modalities = array();
+  foreach ($orders as $order_id) {
+
+    // Load order object.
+    $order = commerce_order_load($order_id['target_id']);
+
+    // Take line items which in current order.
+    $line_items = field_get_items('commerce_order', $order, 'commerce_line_items');
+    foreach ($line_items as $line_item_id) {
+
+      // Load order object.
+      $line_item = commerce_line_item_load($line_item_id['line_item_id']);
+
+      // Take payment modalities which in current line_item.
+      $payment_modalities = field_get_items('commerce_line_item', $line_item, 'field_payment_modality');
+
+      foreach ($payment_modalities as $payment_modality_id) {
+
+        // Check if current payment modality not added to the project.
+        if (!empty($project_payment_modality[0]['target_id'])) {
+          if ($project_payment_modality[0]['target_id'] == $payment_modality_id['target_id']) {
+            continue;
+          }
+        }
+
+        // Check if current payment modality not added to any task.
+        $query = new EntityFieldQuery();
+        $query->entityCondition('entity_type', 'node')
+          ->entityCondition('bundle', 'erpal_task')
+          ->fieldCondition('field_task_payment_modality', 'target_id', $payment_modality_id['target_id']);
+        $result = $query->execute();
+        if (!empty($result['node'])) {
+          continue;
+        }
+
+        // Check if current payment modality not due an order.
+        $payment_modality = erpal_payment_modality_load($payment_modality_id['target_id']);
+        $field_due_with = field_get_items('erpal_payment_modality', $payment_modality, 'field_due_with');
+        if (!empty($field_due_with[0]['value']) && $field_due_with[0]['value'] != 'delivery') {
+          continue;
+        }
+        $free_payment_modalities[] = $payment_modality_id['target_id'];
+      }
+    }
+  }
+
+  return $free_payment_modalities;
+}

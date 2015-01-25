@@ -1,0 +1,48 @@
+// @TODO: not very beatuiful - maybe remove this class from payment modalities?
+.dialog-links:not([class*="commerce-line-items"]) {
+  ul.references-dialog-links {
+    // selector pushing
+    padding-left: 0;
+
+    li a {
+      // and again - selector pushing
+      @include button-small();
+      display: inline-block;
+      background-image: none;
+      margin: 0;
+
+      &:before {
+        position: relative;
+        float: left;
+        top: 0;
+        margin-right: 5px;
+        text-indent: 0;
+      }
+
+      &.add-dialog,
+      &[href*="add"] {
+        &:before {
+          @include font-awesome-icon(plus);
+        }
+      }
+
+      &.search-dialog,
+      &[href*="search"] {
+        &:before {
+          @include font-awesome-icon(search);
+        }
+      }
+
+      &.edit-dialog,
+      &[href*="edit"] {
+        &:before {
+          @include font-awesome-icon(pencil);
+        }
+      }
+    }
+  }
+
+  .form-item + & {
+    margin-top: 0 - $ds;
+  }
+}

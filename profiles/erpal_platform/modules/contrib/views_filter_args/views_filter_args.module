@@ -1,0 +1,49 @@
+<?php
+
+/**
+ * @file
+ * Code for the Views Filter Args module.
+ */
+
+/**
+ * Implements hook_views_pre_view().
+ */
+function views_filter_args_views_pre_view(&$view, &$display_id, &$args) {
+  $fields = array('value', 'min', 'max');
+  if (isset($view->display_handler->options['filters'])) {
+    foreach ($view->display_handler->options['filters'] as &$filter) {
+      // Replace token to real args values.
+      foreach ($fields as $field) {
+        if (isset($filter['value'][$field]) && !is_array($filter['value'][$field])) {
+          $filter['value'][$field] = views_filter_args_replace($filter['value'][$field]);
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Helper function replace token to args values.
+ */
+function views_filter_args_replace($value) {
+  if (strpos($value, '!') !== FALSE) {
+    $index = str_replace('!', '', $value);
+    if (is_numeric($index)) {
+      $value = arg($index);
+    }
+  }
+  return $value;
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function views_filter_args_form_views_ui_config_item_form_alter(&$form, &$form_state, $form_id) {
+  // Add description for filter default value fields.
+  $fields = array('value', 'min', 'max');
+  foreach ($fields as $field) {
+    if (isset($form['options']['value'][$field]) && $form['options']['value'][$field]['#type'] == 'textfield') {
+      $form['options']['value'][$field]['#description'] = t('Use !0, !1, !2 etc. to insert args value into filter.');
+    }
+  }
+}

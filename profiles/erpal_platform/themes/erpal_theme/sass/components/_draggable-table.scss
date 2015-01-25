@@ -1,0 +1,66 @@
+/* --- draggable rows --- */
+// "show weight" link
+.tabledrag-toggle-weight-wrapper {
+  display: none;
+}
+
+// draggable rows
+.draggable {
+  $drag-width: 12px;
+
+  &.drag.drag {
+    // selector overloading
+    background-color: $color-bg-highlight;
+  }
+
+  .ief-tabledrag-handle,
+  .field-multiple-drag {
+    position: relative;
+    padding: 0;
+    width: $drag-width;
+  }
+
+  // changed info
+  .tabledrag-changed {;
+    display: block;
+    position: absolute;
+    top: 6px;
+    right: 0;
+    left: 0;
+    pointer-events: none;
+    text-align: center;
+    color: $color-monza;
+  }
+
+  // handle
+  .tabledrag-handle {
+    display: block;
+    position: absolute;
+    bottom: 0;
+    top: 0;
+    left: 0;
+    right: 0;
+    background-color: rgba(#000, .1);
+    cursor: ns-resize;
+
+    &:after {
+      @include translateY(-50%);
+      @include font-awesome-icon(arrows-v);
+      display: block;
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      color: #fff;
+      text-align: center;
+    }
+
+    .handle {
+      display: none;
+    }
+
+    &:hover {
+      background-color: $color-bg-highlight;
+    }
+  }
+}

@@ -1,0 +1,39 @@
+/** */
+%input-border-default {
+  @include single-transition(border-color, $transition-duration-default);
+  border-color: $input-border-color-default;
+
+  &:focus {
+    @include box-shadow(none);
+    border-color: $input-border-color-hover;
+    outline: none;
+
+    + .field-suffix {
+      border-color: $input-border-color-hover;
+    }
+  }
+
+  &:hover {
+    border-color: $color-border-highlight;
+
+    + .field-suffix {
+      border-color: $color-border-highlight;
+    }
+  }
+}
+
+/**
+  default input styling
+  @requires %input-border-default
+  */
+%input {
+  @extend %input-border-default;
+  @include border-radius(0);
+  @include appearance(none);
+  padding: 3px 7px;
+  border-width: 1px;
+  border-style: solid;
+  background: #fff;
+  outline: none;
+  cursor: auto;
+}

@@ -1,0 +1,186 @@
+<?php
+
+/**
+ * Implements hook_install().
+ */
+function units_install() {
+  // We import all entities defined in code and collected via units_info().
+  drupal_load('module', 'units');
+  units_reimport();
+}
+
+/**
+ * Implements hook_schema().
+ */
+function units_schema() {
+  $schema = array();
+
+  $schema['units_unit'] = array(
+    'description' => 'Store information on unit types.',
+    'fields' => array(
+      'umid' => array(
+        'type' => 'serial',
+        'not null' => TRUE,
+        'description' => 'Primary Key: Unique unit measure ID.',
+      ),
+      'measure' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'description' => '{units_measure}.measure that this unit measure is capable of measuring.',
+      ),
+      'machine_name' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'description' => 'Machine readable name of unit measure.',
+      ),
+      'label' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'description' => 'Human readable name of unit measure.',
+      ),
+      'symbol' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'description' => 'Symbol that corresponds to this unit measure.',
+        'default' => '',
+      ),
+      'description' => array(
+        'description' => 'Description of measure.',
+        'type' => 'text',
+        'size' => 'medium',
+      ),
+      'factor' => array(
+        'type' => 'float',
+        'description' => 'Factor multiplying value by which, you will get the same value in SI unit measure or any other standardized unit measure.',
+        'not null' => TRUE,
+        'default' => 0.0,
+      ),
+      'status' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        // Set the default to ENTITY_CUSTOM without using the constant as it is
+        // not safe to use it at this point.
+        'default' => 0x01,
+        'size' => 'tiny',
+        'description' => 'The exportable status of the entity.',
+      ),
+      'module' => array(
+        'description' => 'The name of the providing module if the entity has been defined in code.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+      ),
+    ),
+    'primary key' => array('umid'),
+    'foreign keys' => array(
+      'units_measure' => array(
+        'table' => 'units_measure',
+        'columns' => array('measure' => 'measure'),
+      ),
+    ),
+    'unique keys' => array(
+      'machine_name' => array('machine_name'),
+    ),
+  );
+
+  $schema['units_measure'] = array(
+    'description' => 'Store information on measures.',
+    'fields' => array(
+      'mid' => array(
+        'type' => 'serial',
+        'not null' => TRUE,
+        'description' => 'Primary Key: Unique measure ID.',
+      ),
+      'measure' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'description' => 'Machine readable name of measure.',
+      ),
+      'label' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'description' => 'Human readable name of measure.',
+      ),
+      'description' => array(
+        'description' => 'Description of measure.',
+        'type' => 'text',
+        'size' => 'medium',
+      ),
+      'convert_callback' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'PHP callback function responsible for converting units from one to another in the measure.',
+      ),
+      'status' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        // Set the default to ENTITY_CUSTOM without using the constant as it is
+        // not safe to use it at this point.
+        'default' => 0x01,
+        'size' => 'tiny',
+        'description' => 'The exportable status of the entity.',
+      ),
+      'module' => array(
+        'description' => 'The name of the providing module if the entity has been defined in code.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+      ),
+    ),
+    'primary key' => array('mid'),
+    'unique keys' => array(
+      'measure' => array('measure'),
+    ),
+  );
+
+  return $schema;
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Update to version of Units module, that supports 'symbol' for 'units_unit'
+ * entity type.
+ */
+function units_update_7101() {
+  // Adding 'symbol' column to the 'units_unit' table.
+  $table = 'units_unit';
+  $column = 'symbol';
+  if (!db_field_exists($table, $column)) {
+    $schema = drupal_get_schema($table, TRUE);
+    db_add_field($table, $column, $schema['fields'][$column]);
+  }
+
+  return t('Updated settings of Units module. Now it supports <em>symbol</em> property for units.');
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Update to version of Units module, that supports 'exportable' feature for
+ * 'units_unit' and 'units_measure' entity types.
+ */
+function units_update_7102() {
+  // Adding 'status' and 'module' columns to the 'units_unit' and
+  // 'units_measure' tables.
+  $tables = array('units_unit', 'units_measure');
+  $columns = array('status', 'module');
+  foreach($tables as $table) {
+    $schema = drupal_get_schema($table, TRUE);
+    foreach($columns as $column) {
+      if (!db_field_exists($table, $column)) {
+        db_add_field($table, $column, $schema['fields'][$column]);
+      }
+    }
+  }
+
+  return t('Updated settings of Units module. Now it supports Features exportables.');
+}

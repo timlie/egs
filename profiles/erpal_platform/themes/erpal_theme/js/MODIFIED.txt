@@ -1,0 +1,9 @@
+1. replaced jQuery with jq1111 in bootstrap.js
+
+2. jquery-cookie
+    1. replaced jQuery with jq1111 in jquery-cookie/jquery.cookie.js:119
+    2. added return of jQ on jquery-cookie/jquery.cookie.js:118
+
+3. tooltipster
+    1. replaced jQuery with jq1111 in jquery.tooltipster.min.js
+    2. removed "one or more tooltips are already attached" log

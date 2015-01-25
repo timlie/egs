@@ -1,0 +1,28 @@
+<?php
+/**
+ * @file
+ * Install, update and uninstall functions for the erpal platform install profile.
+ */
+
+
+/**
+ * Implements hook_install().
+ *
+ * @see system_install()
+ */
+function erpal_platform_core_install() {
+
+  // Set to always load the extra jquery version, so its available for the
+  // theme.
+  variable_set('jqmulti_load_always', 1);
+
+  variable_set('jquery_ui_multiselect_widget_multiple', 0);
+  variable_set('jquery_ui_multiselect_widget_filter', 1);
+  variable_set('jquery_ui_multiselect_widget_filter_auto_reset', 1);
+  variable_set('jquery_ui_multiselect_widget_selectedlist', 1);
+
+  // Set new front page.
+  variable_set('site_frontpage', 'home');
+  $page = homebox_get_page('dashboard');
+  homebox_save_page($page);
+}

@@ -1,0 +1,22 @@
+name = ERPAL Reports
+description = ERPAL Reports Module. Provide functionality for reports system!
+core = 7.x
+package = ERPAL Reports
+
+dependencies[] = charts_google
+dependencies[] = commerce_payment
+dependencies[] = commerce_reports_tax
+dependencies[] = erpal_output_ui
+dependencies[] = views_date_format_sql
+
+; Views handlers
+files[] = views/handlers/erpal_reports_handler_filter_date_format.inc
+files[] = views/handlers/erpal_reports_handler_filter_payment_type.inc
+
+
+; Information added by drush on 2015-01-21
+version = "7.x-3.0-alpha1+10-dev"
+core = "7.x"
+project = "erpal_reports"
+datestamp = "1421852599"
+

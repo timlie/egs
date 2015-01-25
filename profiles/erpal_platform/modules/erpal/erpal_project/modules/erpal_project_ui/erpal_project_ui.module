@@ -1,0 +1,410 @@
+<?php
+
+/**
+ * @file
+ * Code for the ERPAL PM user interface functional module.
+ */
+
+
+/**
+ * Implements hook_menu().
+ */
+function erpal_project_ui_menu() {
+  $items = array();
+  $items['admin/erpal/settings/pm'] = array(
+    'title' => 'ERPAL PM settings',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('erpal_project_ui_settings'),
+    'access arguments' => array('access administration pages'),
+    'type' => MENU_NORMAL_ITEM,
+  );
+  $items['project/deliveries/%node'] = array(
+    'title callback' => 'erpal_project_ui_deliveries_title',
+    'title arguments' => array(2),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('erpal_project_ui_deliveries_form', 2),
+    'access arguments' => array('create erpal_project content'),
+    'type' => MENU_CALLBACK,
+  );
+
+  return $items;
+}
+
+/**
+ * Implements hook_ctools_plugin_api().
+ *
+ * We provide our default pages for page_manager.
+ */
+function erpal_project_ui_ctools_plugin_api($module = NULL, $api = NULL) {
+  if ($module == "page_manager" && $api == "pages_default") {
+    return array("version" => "1");
+  }
+  if ($module == "cat" && $api == "cat") {
+    return array("version" => "1");
+  }
+  if ($module == "path_breadcrumbs" && $api == "path_breadcrumbs") {
+    return array("version" => "1");
+  }
+  if ($module == "ds" && $api == "ds") {
+    return array("version" => "1");
+  }
+}
+
+/**
+ * Callback function ERPAL feedback settings form.
+ */
+function erpal_project_ui_settings() {
+  $form = array();
+
+  $fields = array(
+    'field_project_status' => t('Project status'),
+    'field_task_status' => t('Task status'),
+    'field_task_type' => t('Task type'),
+    'field_task_priority' => t('Task priority'),
+  );
+
+  $field_values = array();
+  foreach ($fields as $field => $label) {
+    $field_info = field_info_field($field);
+    $field_values[$field] = list_allowed_values($field_info);
+
+    $form[$field] = array(
+      '#type' => 'textarea',
+      '#title' => $label,
+      '#default_value' => list_allowed_values_string($field_values[$field]),
+      '#required' => TRUE,
+    );
+  }
+
+  $form['save'] = array(
+    '#type' => 'submit',
+    '#value' => t('Save'),
+  );
+
+  return $form;
+}
+
+/**
+ * Save settings form submit handler.
+ */
+function erpal_project_ui_settings_submit($form, &$form_state) {
+  $fields = array(
+    'field_project_status',
+    'field_task_status',
+    'field_task_type',
+    'field_task_priority',
+  );
+
+  foreach ($fields as $key => $field) {
+    $text = $form_state['values'][$field];
+    $option_list = list_extract_allowed_values($text, 'list_text', TRUE);
+
+    // Get the field info.
+    $info = field_info_field($field);
+    $info['settings']['allowed_values'] = $option_list;
+    field_update_field($info);
+  }
+
+  drupal_set_message(t('Saved.'));
+}
+
+/**
+ * Callback function for ERPAL project deliveries form.
+ */
+function erpal_project_ui_deliveries_title($project) {
+  return t('Create tasks automatically for deliveries in @project project', array('@project' => $project->title));
+}
+
+/**
+ * Callback function for ERPAL project deliveries form.
+ */
+function erpal_project_ui_deliveries_form($form, &$form_state, $project) {
+  $form = array('#tree' => TRUE);
+  $form['project_id'] = array(
+    '#type' => 'value',
+    '#value' => $project->nid,
+  );
+  // Search payment modalities which have orders from current project.
+  $free_payment_modalities = erpal_project_get_free_payment_modalities($project);
+  if (!empty($free_payment_modalities)) {
+    $payment_modalities = erpal_payment_modality_load_multiple($free_payment_modalities);
+    foreach ($payment_modalities as $payment_modality) {
+      $line_item = erpal_payment_modality_load_line_item($payment_modality->payment_modality_id);
+      $order = commerce_order_load($line_item->order_id);
+      $order_label = erpal_commerce_order_label($order);
+      $line_item_label = erpal_commerce_line_item_label($line_item);
+      $form['tasks'][$payment_modality->payment_modality_id] = array(
+        '#type' => 'fieldset',
+        '#title' => t('Payment modality: !order_label - !line_item_label - !title', array('!title' => $payment_modality->title, '!order_label' => $order_label, '!line_item_label' => $line_item_label)),
+      );
+      $form['tasks'][$payment_modality->payment_modality_id]['task'] = array(
+        '#title' => t('Create task'),
+        '#type' => 'checkbox',
+        '#default_value' => TRUE,
+        '#description' => t('If ckecked, task will be automatically created.'),
+      );
+      $form['tasks'][$payment_modality->payment_modality_id]['title'] = array(
+        '#title' => t('Title of task'),
+        '#type' => 'textfield',
+        '#default_value' => t('!order_label - !line_item_label - !title', array('!title' => $payment_modality->title, '!order_label' => $order_label, '!line_item_label' => $line_item_label)),
+        '#description' => t('Title of task which will be created, default will be set title of payment modality.'),
+        '#states' => array(
+          'visible' => array(
+            ':input[name="tasks[' . $payment_modality->payment_modality_id . '][task]"]' => array('checked' => TRUE),
+          ),
+        ),
+      );
+    }
+  }
+  $form['actions']['sudmit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Process'),
+  );
+  $form['actions']['cancel'] = array(
+    '#markup' => l(t('Cancel'), 'node/' . arg(2)),
+  );
+
+  return $form;
+}
+
+/**
+ * Submit function for ERPAL project deliveries form.
+ */
+function erpal_project_ui_deliveries_form_submit($form, &$form_state) {
+  global $user;
+  if ($form_state['values']['tasks']) {
+    foreach ($form_state['values']['tasks'] as $id => $settings) {
+
+      // Create for each selected payment modality one task.
+      if (!empty($settings['task'])) {
+
+        // Search line item id to which attached current payment modality.
+        $query = new EntityFieldQuery();
+        $query->entityCondition('entity_type', 'commerce_line_item')
+          ->entityCondition('bundle', 'product')
+          ->fieldCondition('field_payment_modality', 'target_id', $id);
+        $result = $query->execute();
+        if (empty($result['commerce_line_item'])) {
+          continue;
+        }
+        $commerce_line_item = array_keys($result['commerce_line_item']);
+        $commerce_line_item = reset($commerce_line_item);
+
+        // Prepare object of new node.
+        $node = (object) array('uid' => $user->uid, 'name' => (isset($user->name) ? $user->name : ''), 'type' => 'erpal_task', 'language' => LANGUAGE_NONE);
+        $node->title = $settings['title'];
+
+        // Set task project.
+        $lang = field_language('node', $node, 'field_task_project');
+        $node->field_task_project[$lang][0] = array(
+          'target_id' => $form_state['values']['project_id'],
+        );
+
+        // Set task line item.
+        $lang = field_language('node', $node, 'field_task_line_item');
+        $node->field_task_line_item[$lang][0] = array(
+          'target_id' => $commerce_line_item,
+        );
+
+        // Set task payment modality.
+        $lang = field_language('node', $node, 'field_task_payment_modality');
+        $node->field_task_payment_modality[$lang][0] = array(
+          'target_id' => $id,
+        );
+        node_save($node);
+      }
+    }
+  }
+  $form_state['redirect'] = 'node/' . $form_state['values']['project_id'];
+}
+
+/**
+ * Implements hook_views_api().
+ */
+function erpal_project_ui_views_api() {
+  return array(
+    'api' => 3,
+    'path' => drupal_get_path('module', 'erpal_project_ui') . '/includes/views',
+  );
+}
+
+/**
+ * Implements hook_menu_alter().
+ */
+function erpal_project_ui_menu_alter(&$items) {
+
+  // Just create simple page and for user which not admin.
+  if (!empty($items['node/add/erpal-project'])) {
+    $items['admin/erpal/projects/add/project'] = $items['node/add/erpal-project'];
+    $items['admin/erpal/projects/add/project']['title'] = 'Add Project';
+  }
+  if (!empty($items['node/add/erpal-task'])) {
+    $items['admin/erpal/tasks/add/task'] = $items['node/add/erpal-task'];
+    $items['admin/erpal/tasks/add/task']['title'] = 'Add Task';
+  }
+}
+
+/**
+ * Implements hook_menu_local_tasks_alter().
+ */
+function erpal_project_ui_menu_local_tasks_alter(&$data, $router_item, $root_path) {
+
+  // Add local tasks for adding Project and Tasks.
+  $local_tasks = array(
+    array(
+      'root_path' => 'admin/erpal/projects',
+      'menu_item' => 'admin/erpal/projects/add/project',
+      'title' => 'Add Project',
+    ),
+    array(
+      'root_path' => 'admin/erpal/tasks',
+      'menu_item' => 'admin/erpal/tasks/add/task',
+      'title' => 'Add Task',
+    ),
+  );
+  if ($root_path == 'admin/commerce/orders/%') {
+    $order = commerce_order_load(arg(3));
+    if ($order->type == 'commerce_order') {
+      $local_tasks[] = array(
+        'root_path' => $root_path,
+        'menu_item' => 'node/add/erpal-project',
+        'title'     => 'Create Project',
+        'query'     => array('field_project_order' => arg(3)),
+      );
+
+    }
+  }
+  erpal_core_add_local_actions($data, $local_tasks, $root_path);
+}
+
+/**
+ * Implements hook_form_alter().
+ */
+function erpal_project_ui_form_alter(&$form, &$form_state, $form_id) {
+  $query = drupal_get_query_parameters();
+  switch ($form_id) {
+    case 'erpal_task_node_form':
+      if (!empty($query['project']) && is_numeric($query['project'])) {
+        $project = node_load($query['project']);
+        $title = trim($project->title) . ' (' . $project->nid . ')';
+        $language = $form['field_task_project']['#language'];
+        $form['field_task_project'][$language][0]['target_id']['#default_value'] = $title;
+      }
+      break;
+
+    case 'erpal_output_edit_time_form':
+      if (!empty($query['task']) && is_numeric($query['task'])) {
+        $task = node_load($query['task']);
+        $title = trim($task->title) . ' (' . $task->nid . ')';
+        $language = $form['field_output_time_refers']['#language'];
+        $form['field_output_time_refers'][$language][0]['target_id']['#default_value'] = $title;
+      }
+      break;
+
+    case 'erpal_project_node_form':
+
+      // Added prerender for have possibility to add group options.
+      if (!isset($form['field_project_line_item']['#pre_render'])) {
+        $form['field_project_line_item']['#pre_render'] = array();
+      }
+      array_unshift($form['field_project_line_item']['#pre_render'], 'erpal_project_ui_select_group');
+
+      // Added prerender for have possibility to add group options.
+      if (!isset($form['field_project_payment_modality']['#pre_render'])) {
+        $form['field_project_payment_modality']['#pre_render'] = array();
+      }
+      array_unshift($form['field_project_payment_modality']['#pre_render'], 'erpal_project_ui_select_group');
+
+      $form['actions']['submit']['#submit'][] = 'erpal_project_ui_project_sudmit';
+      break;
+
+  }
+
+}
+
+/**
+ * Pre render for erpal_project_node_form.
+ */
+function erpal_project_ui_select_group($element) {
+
+  $language = $element['#language'];
+  $field_name = $element[$language]['#field_name'];
+
+  switch ($field_name) {
+    case 'field_project_line_item':
+      $options = array();
+      foreach ($element[$language]['#options'] as $key => $value) {
+        if (is_numeric($key)) {
+          $line_item = commerce_line_item_load($key);
+          $order = commerce_order_load($line_item->order_id);
+          $label = erpal_commerce_order_label($order);
+          $options[$label][$key] = $value;
+          
+        }
+        else {
+          $options[$key] = $value;
+        }
+      }
+      $element[$language]['#options'] = $options;
+      break;
+
+    case 'field_project_payment_modality':
+      $options = array();
+      foreach ($element[$language]['#options'] as $key => $value) {
+        if (is_numeric($key)) {
+          $line_item = erpal_payment_modality_load_line_item($key);
+          $order = commerce_order_load($line_item->order_id);
+          $order_label = erpal_commerce_order_label($order);
+          $line_item_label = erpal_commerce_line_item_label($line_item);
+          $options[$order_label . ': ' . $line_item_label][$key] = $value;
+        }
+        else {
+          $options[$key] = $value;
+        }
+      }
+      $element[$language]['#options'] = $options;
+      break;
+  }
+
+  return $element;
+
+}
+
+
+/**
+ * Save settings form submit handler.
+ */
+function erpal_project_ui_project_sudmit($form, &$form_state) {
+
+  // Search payment modalities which have orders from current project.
+  $free_payment_modalities = erpal_project_get_free_payment_modalities($form_state['node']);
+
+  // If we have free payment modalities redirect user to deliveries page.
+  if ($free_payment_modalities) {
+    $form_state['redirect'] = 'project/deliveries/' . $form_state['node']->nid;
+  }
+}
+
+/**
+ * Implements hook_flush_caches().
+ */
+function erpal_project_ui_flush_caches() {
+  $items[] = array(
+    'link_path' => 'projects',
+    'link_title' => 'Projects',
+    'menu_name' => 'erpal-menu',
+    'weight' => 9,
+  );
+
+  foreach ($items as $item) {
+    $result = db_select('menu_links', 'ml')
+      ->fields('ml')
+      ->condition('link_path', $item['link_path'])
+      ->condition('menu_name', $item['menu_name'])
+      ->execute()
+      ->fetchAllAssoc('mlid');
+    if (!count($result)) {
+      menu_link_save($item);
+    }
+  }
+}

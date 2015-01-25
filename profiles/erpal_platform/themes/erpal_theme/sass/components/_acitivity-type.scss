@@ -1,0 +1,22 @@
+.activity-type {
+  text-align: center;
+
+  &:before {
+    @include font-awesome-icon(calendar); // default-icon
+    opacity: .5;
+    margin-right: 5px;
+  }
+
+  $icons: (
+    'phone-call': phone,
+    'email': envelope-o,
+    'meeting': users,
+    'sales-process': share-alt
+  );
+
+  @each $data, $icon in $icons {
+    &-#{$data}:before {
+      @include font-awesome-content($icon);
+    }
+  }
+}

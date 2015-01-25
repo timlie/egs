@@ -1,0 +1,318 @@
+<?php
+
+/**
+ * @file
+ * Provides hook implementations for ERPAL CRM UI module.
+ */
+
+/**
+ * Implements hook_menu_alter().
+ *
+ * In general, here we change/drop menu items that comes from
+ * CRM Core module.
+ */
+function erpal_crm_ui_menu_alter(&$items) {
+  // Change autocomplite function for relation add field.
+  if (isset($items['relation_add/autocomplete/%'])) {
+    $items['relation_add/autocomplete/%']['page callback'] = 'erpal_crm_ui_relation_add_autocomplete';
+  }
+
+  // Replace page with adding new activities.
+  if (isset($items['crm-core/contact/activity-add'])) {
+    $items['crm-core/activity/add'] = $items['crm-core/contact/activity-add'];
+    $items['crm-core/activity/add']['page callback'] = 'erpal_crm_ui_add_activity_page';
+    $items['crm-core/activity/add']['file'] = 'erpal_crm_ui.pages.inc';
+    $items['crm-core/activity/add']['file path'] = drupal_get_path('module', 'erpal_crm_ui');
+    unset($items['crm-core/contact/activity-add']);
+  }
+
+  // Change paths for pages where activity bundles can be created.
+  foreach (crm_core_activity_types() as $activity_type) {
+    $items['crm-core/activity/add/' . $activity_type->type] = $items['crm-core/contact/activity-add/' . $activity_type->type];
+    unset($items['crm-core/contact/activity-add/' . $activity_type->type]);
+  }
+
+  // Drop pages with activity and contact entity view.
+  // We replace them with page manager paths.
+  unset($items['crm-core/activity/%crm_core_activity']);
+  unset($items['crm-core/contact/%crm_core_contact']);
+
+  // Change callback for crm-core path, because we don't need one that comes
+  // from CRM Core UI module, but we can't just drop it.
+  $items['crm-core'] = array(
+    'page callback' => 'drupal_goto',
+    'page arguments' => array('crm-core/contact'),
+    'access arguments' => array('view any crm_core_contact entity'),
+  );
+}
+
+/**
+ * Implements hook_module_implements_alter().
+ */
+function erpal_crm_ui_module_implements_alter(&$implementations, $hook) {
+  // Disallow execution of hook_ctools_plugin_directory() for CRM Core Contact
+  // module, because it implements only page manager path for contact view
+  // template, but we agreed to use simple export of pages instead.
+  if ($hook == 'ctools_plugin_directory') {
+    unset($implementations['crm_core_contact']);
+  }
+  // Drop implementation of hook_modules_installed() from CRM Core UI module,
+  // because it injects crm core menu in the blocks and displays it, but
+  // we don't need neither that block or that menu at all.
+  elseif ($hook == 'modules_installed') {
+    unset($implementations['crm_core_ui']);
+  }
+}
+
+/**
+ * Implements hook_permission().
+ */
+function erpal_crm_ui_permission() {
+  $permissions = array(
+    'delete any crm_core_contact entity' => array(
+      'title' => t('Delete any cotacts of any type'),
+      'restrict access' => TRUE,
+    ),
+    'delete any crm_core_activity entity' => array(
+      'title' => t('Delete any activities of any type'),
+      'restrict access' => TRUE,
+    ),
+  );
+
+  return $permissions;
+}
+
+/**
+ * Implements hook_views_api().
+ *
+ * We provide our default views.
+ */
+function erpal_crm_ui_views_api() {
+  return array('api' => 3);
+}
+
+/**
+ * Implements hook_ctools_plugin_api().
+ *
+ * We provide our default pages for page_manager.
+ */
+function erpal_crm_ui_ctools_plugin_api($module = NULL, $api = NULL) {
+  if ($module == "page_manager" && $api == "pages_default") {
+    return array("version" => "1");
+  }
+  if ($module == "cat" && $api == "cat") {
+    return array("version" => "1");
+  }
+  if ($module == "path_breadcrumbs" && $api == "path_breadcrumbs") {
+    return array("version" => "1");
+  }
+  if ($module == 'ds' && $api == 'ds') {
+    return array('version' => 1);
+  }
+}
+
+/**
+ * Implements hook_form_alter().
+ */
+function erpal_crm_ui_form_alter(&$form, &$form_state, $form_id) {
+  // We need to add another submit callback for the form with relationships
+  // creation, so after form submition it would redirect user to the path
+  // that we need, not pre-defined in the CRM Core module.
+  if ($form_id == 'crm_core_relationship_form') {
+    $form['actions']['submit']['#submit'][] = 'erpal_crm_ui_form_crm_core_relationship_form_submit';
+  }
+
+  // Hide forecast title and available fields. Add custom validation function.
+  if ($form_id == 'crm_core_activity_edit_sales_process_form') {
+    $language = $form['field_activity_sales_forecast']['#language'];
+
+    $form['field_activity_sales_forecast'][$language]['form']['title']['#access'] = FALSE;
+    $form['field_activity_sales_forecast'][$language]['form']['field_budget_available']['#access'] = FALSE;
+    $form['field_activity_sales_forecast'][$language]['form']['field_budget_negative']['#access'] = FALSE;
+
+    array_unshift($form['#validate'], 'erpal_crm_ui_crm_core_activity_edit_sales_process_form_validate');
+
+    // Set default field values.
+    if (empty($form['field_activity_sales_forecast'][$language]['form']['field_budget_total'][$language][0]['#items'][0]['value'])) {
+      $form['field_activity_sales_forecast'][$language]['form']['field_budget_total'][$language][0]['#items'][0]['value'] = "0.00";
+    }
+
+    if (arg(1) == 'contact') {
+      $contact_id = $form['contact_id']['#value'];
+      $contact = crm_core_contact_load($contact_id);
+      $language = field_language('crm_core_contact', $contact, 'contact_name');
+      $contact_name = implode(' ', $contact->contact_name[$language][0]['safe']);
+      $contact_name = trim($contact_name) . ' (' . $contact_id . ')';
+
+      switch ($contact->type) {
+        case 'organization':
+          $language = $form['field_activity_customer']['#language'];
+          $form['field_activity_customer'][$language][0]['target_id']['#default_value'] = $contact_name;
+          break;
+
+        case 'individual':
+          $language = $form['field_activity_main_contact']['#language'];
+          $form['field_activity_main_contact'][$language][0]['target_id']['#default_value'] = $contact_name;
+          break;
+      }
+    }
+  }
+
+  // Prepopulate field_activity_participants field.
+  $forms = array(
+    'crm_core_activity_edit_meeting_form',
+    'crm_core_activity_edit_phone_call_form',
+    'crm_core_activity_edit_email_form',
+  );
+  $params = drupal_get_query_parameters();
+  if (in_array($form_id, $forms) && isset($params['field_activity_sales_process'])) {
+    $activity = crm_core_activity_load($params['field_activity_sales_process']);
+    $participants = field_get_items('crm_core_activity', $activity, 'field_activity_participants');
+
+    if (isset($participants[0]['target_id'])) {
+      $contact = crm_core_contact_load($participants[0]['target_id']);
+      $language = field_language('crm_core_contact', $contact, 'contact_name');
+      $contact_name = implode(' ', $contact->contact_name[$language][0]['safe']);
+      $contact_name = trim($contact_name) . ' (' . $contact->contact_id . ')';
+      $language = $form['field_activity_participants']['#language'];
+      $form['field_activity_participants'][$language]['#default_value'] = $contact_name;
+    }
+  }
+}
+
+/**
+ * Submit callback for crm_core_relationship_form.
+ *
+ * Simply redirects user to a page with contact view.
+ */
+function erpal_crm_ui_form_crm_core_relationship_form_submit($form, &$form_state) {
+
+  $reverse = $form_state['values']['reverse'];
+  $source_contact = _crm_core_relationship_ui_get_contact_from_autocomplete_field_value($form_state['values']['source_contact']);
+  $destination_contact = _crm_core_relationship_ui_get_contact_from_autocomplete_field_value($form_state['values']['destination_contact']);
+
+  $redirect_contact = $reverse ? $destination_contact : $source_contact;
+  $form_state['redirect'] = 'crm-core/contact/' . $redirect_contact->contact_id;
+}
+
+/**
+ * Custom validation callback for crm_core_activity_edit_sales_process_form.
+ */
+function erpal_crm_ui_crm_core_activity_edit_sales_process_form_validate($form, &$form_state) {
+  // Set forecast title the same as Activity title.
+
+  $language = $form['field_activity_sales_forecast']['#language'];
+  form_set_value($form['field_activity_sales_forecast'][$language]['form']['title'], $form_state['values']['title'], $form_state);
+}
+
+/**
+ * Autocomplete page for listing entities appropriate for a giver relation type.
+ *
+ * @param string $type
+ *   The relation type to search for endpoints for.
+ * @param string $direction
+ *   The direction for which to allow endpoint bundles.
+ * @param string $string
+ *   The string for which the search through entity labels will be run.
+ */
+function erpal_crm_ui_relation_add_autocomplete($type = '', $direction = 'target', $field = 'none', $string = '') {
+  if (empty($type) || empty($direction) || empty($string)) {
+    exit();
+  }
+
+  module_load_include('inc', 'crm_core_relationship_ui');
+
+  // Removing the :reverse suffix if exists.
+  $type_array = explode(':', $type);
+  $type = $type_array[0];
+
+  $entity_infos = entity_get_info();
+  $relation_type = relation_type_load($type);
+  $entity_bundles = array();
+
+  $instance = array();
+  if ($field !== 'none') {
+    list($entity_type, $field_name, $bundle) = explode('-', $field);
+    $instance = field_info_instance($entity_type, $field_name, $bundle);
+  }
+
+  // Use source bundles unless relation type is directional and we're looking in
+  // the forward direction.
+  $direction = ($relation_type->directional && $direction == 'target') ? 'target_bundles' : 'source_bundles';
+  foreach ($relation_type->$direction as $entity_bundle) {
+    list($entity_type, $bundle) = explode(':', $entity_bundle, 2);
+    $entity_bundles[$entity_type][] = $bundle;
+  }
+  // Get about 12, rounded up.
+  $limit = ceil(12 / count(array_keys($entity_bundles)));
+  $suggestions = array();
+  foreach ($entity_bundles as $entity_type => $bundles) {
+    if ($entity_type == 'crm_core_contact') {
+      $query = new EntityFieldQuery();
+      $query->entityCondition('entity_type', $entity_type)
+        ->propertyCondition('type', $bundles, 'IN')
+        ->range(0, 20);
+      $query->addMetaData('match', $string)
+        ->addTag(variable_get('crm_core_contact_search_query_tag', 'crm_core_contact_search'));
+      $result = $query->execute();
+      if (!empty($result[$entity_type])) {
+        $contacts = entity_load($entity_type, array_keys($result[$entity_type]));
+        foreach ($contacts as $contact) {
+          $crm_core_contact_title = crm_core_contact_title($contact);
+          $suggestions[$crm_core_contact_title . ' [' . $entity_type . ':' . $contact->contact_id . ']'] = $crm_core_contact_title . ' [' . $entity_type . ':' . $contact->contact_id . ']';
+        }
+      }
+
+      continue;
+    }
+
+    $base_table = $entity_infos[$entity_type]['base table'];
+    // Get the name of the column in the base table for the entity type.
+    if ($entity_type == 'user') {
+      // Special case for users.
+      $label_key = 'name';
+    }
+    elseif (isset($entity_infos[$entity_type]['entity keys']['label'])) {
+      $label_key = $entity_infos[$entity_type]['entity keys']['label'];
+    }
+    elseif (isset($entity_infos[$entity_type]['entity keys']['id'])) {
+      $label_key = $entity_infos[$entity_type]['entity keys']['id'];
+    }
+    else {
+      // Can't find a label to search over, give up.
+      break;
+    }
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', $entity_type);
+    if (!empty($instance)
+      && isset($instance['widget']['settings']['relation_endpoint_search_by_id'])
+      && $instance['widget']['settings']['relation_endpoint_search_by_id']
+      && preg_match("/^[0-9]+$/", $string)) {
+
+      // We are most likely searching for an entity ID.
+      $query->entityCondition('entity_id', (int) $string);
+    }
+    else {
+      $query->propertyCondition($label_key, $string, 'CONTAINS');
+    }
+    $query->range(0, $limit);
+    if (!in_array('*', $bundles) && $entity_type != 'taxonomy_term') {
+      $query->entityCondition('bundle', $bundles, 'IN');
+    }
+    elseif (!in_array('*', $bundles) && $entity_type == 'taxonomy_term') {
+      $vocabularies = taxonomy_vocabulary_load_multiple(NULL, array('machine_name' => $bundles));
+      $bundles = array_keys($vocabularies);
+      $query->propertyCondition('vid', $bundles, 'IN');
+    }
+    if ($results = $query->execute()) {
+      foreach (array_keys($results[$entity_type]) as $id) {
+        $entities = entity_load($entity_type, array($id));
+        $entity = reset($entities);
+        $label = entity_label($entity_type, $entity);
+        $suggestions[$label . ' [' . $entity_type . ':' . $id . ']'] = $label . ' [' . $entity_type . ':' . $id . ']';
+      }
+    }
+  }
+  print drupal_json_encode($suggestions);
+  exit();
+}

@@ -1,0 +1,16 @@
+name = ERPAL Quote Commerce Cart
+description = Provides integration between ERPAL Quote module and Commerce Cart.
+core = 7.x
+package = ERPAL Quote
+
+dependencies[] = erpal_quote
+dependencies[] = commerce_cart
+dependencies[] = rules_conditional
+
+
+; Information added by drush on 2015-01-21
+version = "7.x-3.0-alpha1+8-dev"
+core = "7.x"
+project = "erpal_quote"
+datestamp = "1421852599"
+

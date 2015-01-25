@@ -1,0 +1,32 @@
+.view-empty {
+  p {
+    clear: both;
+  }
+}
+
+.views-table {
+  clear: both;
+  width: 100%;
+
+  thead,
+  tr {
+    border: 1px solid $color-alto;
+  }
+
+  tr.odd {
+    background-color: rgba(#000, .05);
+  }
+
+  th {
+    padding: 10px;
+  }
+
+  td {
+    padding: 5px 10px;
+  }
+}
+
+.view-footer {
+  font-size: $font-size-small;
+  color: rgba(#000, .3);
+}

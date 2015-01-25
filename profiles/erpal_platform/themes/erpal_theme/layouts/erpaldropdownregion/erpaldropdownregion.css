@@ -1,0 +1,23 @@
+.js .erpaldropdownregion-dropdown {
+  opacity: 0;
+  position: absolute;
+  right: 0;
+  background-color: grey;
+  pointer-events: none;
+}
+
+.js .page-admin-structure .erpaldropdownregion-dropdown {
+  opacity: 1;
+  position:relative;
+  right: auto;
+  pointer-events: none;
+}
+
+.js .erpaldropdownregion-trigger:hover .erpaldropdownregion-dropdown {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.erpaldropdownregion-trigger p{
+  margin: 0;
+}

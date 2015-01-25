@@ -1,0 +1,31 @@
+//.field-name-field-contact-relation
+.field-widget-relation-add {
+  td > div {
+    float: left;
+    position: relative;
+
+    + div {
+      margin-left: $ds;
+    }
+  }
+
+  .draggable > td {
+    position: relative;
+  }
+
+  .form-type-checkbox {
+    position: absolute;
+    top: 20px;
+    right: $ds;
+  }
+
+  .references-dialog-links {
+    margin: 0;
+    padding: 0;
+  }
+
+  .form-type-textfield {
+    margin-bottom: 5px;
+    padding-right: 79px;
+  }
+}

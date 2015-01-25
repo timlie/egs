@@ -1,0 +1,240 @@
+.erpalsitetemplate,
+.erpalsitetemplate-top .inner {
+  margin: 0 auto;
+  padding-top: 7px;
+}
+
+// header
+.erpalsitetemplate-pageheader {
+  @include single-box-shadow(0, 1px, 5px, 0, rgba(#000, .75));
+  position: fixed;
+  z-index: 5;
+  margin: 0;
+  height: $pageheader-height;
+  background: $color-dove-gray;
+
+  .inner {
+    $side: 9px;
+
+    padding: {
+      left: $side;
+      right: $side;
+    }
+  }
+}
+
+.erpalsitetemplate-pageheaderleft {
+  line-height: $pageheader-height;
+
+  .pane-page-logo {
+    display: inline-block;
+  }
+
+  .pane-page-site-name {
+    @include single-text-shadow(0, 1px, 5px, 0, rgba(#000, .75));
+    display: inline-block;
+    font-size: 16px;
+    color: #fff;
+    font-weight: bold;
+  }
+}
+
+.erpalsitetemplate-pageheaderright {
+  padding-right: $ds;
+  text-align: right;
+
+  .pane-erpal-dropdown-user-menu {
+    margin-left: $ds;
+  }
+}
+
+// site-wrapper
+.erpalsitetemplate {
+  padding-top: 50px;
+  min-width: 710px;
+}
+
+// main-menu
+.erpalsitetemplate-left {
+  @include single-transition(width, $menu-transition-duration);
+  position: fixed;
+  width: $menu-width;
+  height: 100%;
+  line-height: $pageheader-height;
+  color: $menu-link-color;
+  background-color: rgba(#000, .3);
+
+  .collapsed-sidebar & {
+    width: $menu-collapsed-width;
+
+    .panel-pane:not(.pane-menu-erpal-menu) {
+      display: none;
+    }
+  }
+
+  .region-title {
+    @include transition-duration($menu-transition-duration, 1.2s);
+    @include transition-property(text-indent, color);
+    display: inline-block;
+    overflow: hidden;
+    margin: 11px 0;
+    padding: 5px 10px;
+    width: 100px;
+    height: 20px;
+    font-size: $font-size-minor;
+    text-indent: 0;
+    font-weight: normal;
+    cursor: pointer;
+
+    &:before {
+      @include font-awesome-icon(bars);
+      float: left;
+      text-indent: 0;
+      margin: {
+        right: $menu-icon-right-spacing;
+        left: 2px;
+      }
+      color: $menu-link-color;
+    }
+
+    &:hover {
+      opacity: .8;
+    }
+
+    .collapsed-sidebar & {
+      text-indent: 0 - ($menu-width + $ds);
+      color: transparent;
+    }
+  }
+
+  .wrapper {
+    margin-top: 12px;
+    padding: 0;
+  }
+}
+
+// main-side
+.erpalsitetemplate-content {
+  $menu-content-spacing: $ds * 2;
+
+  @include single-transition(padding, $menu-transition-duration);
+  padding: $inner-spacing $inner-spacing $inner-spacing ($menu-width + $menu-content-spacing);
+
+  .collapsed-sidebar & {
+    padding-left: $menu-collapsed-width + $menu-content-spacing;
+  }
+}
+
+// main-side > content-wrap
+.erpalsitetemplate-right {
+  float: none;
+  width: auto;
+  min-width: 500px;
+
+  #edit-commerce-line-items-und-actions-bundle,
+  #edit-commerce-line-items-und-actions-line-item-type {
+    display: none;
+  }
+}
+
+// main-side > content-wrap > tabs
+.erpalsitetemplate-right-tabs {
+  padding: 0 $ds;
+}
+
+// main-side > content-wrap > content
+.erpalsitetemplate-right-content {
+  @include single-box-shadow(0, 1px, 3px, 0, rgba(#000, .5));
+  padding: $inner-spacing;
+  background: #fff;
+  border-radius: 5px;
+
+  h1 {
+    margin: {
+      top: 0;
+      bottom: $ds;
+    }
+    font-size: $font-size-headline;
+    font-weight: 500;
+    line-height: 1.1;
+  }
+}
+
+// main-side > content-wrap > footer
+.erpalsitetemplate-bottom {
+  padding: $inner-spacing $ds $ds;
+  height: 45px;
+  font-size: $font-size-small;
+  text-align: center;
+  color: #fff;
+  opacity: .5;
+
+  a,
+  a:hover,
+  a:visited {
+    color: #fff;
+  }
+
+  .pane-powered-by > span {
+    display: inline-block;
+
+    + span:before {
+      content: '\2022';
+      margin: 0 8px 0 5px;
+    }
+  }
+
+  .text {
+    // reset for pdf-pages
+    position: static;
+  }
+
+  .erpal,
+  .drupal,
+  .company {
+    a {
+      display: inline-block;
+      position: relative;
+
+      &:before {
+        position: relative;
+        float: left;
+        margin: {
+          right: 4px;
+          left: 2px;
+        }
+      }
+    }
+  }
+
+  .company,
+  .erpal {
+    a:before {
+      display: inline-block;
+      content: '';
+    }
+  }
+
+  .erpal a:before {
+    $img: 'erpal_logo_footer.png';
+
+    top: -1px;
+    height: image-height($img);
+    width: image-width($img);
+    background: image-url($img);
+  }
+
+  .drupal a:before {
+    @include font-awesome-icon(drupal);
+    top: -4px;
+    font-size: 15px;
+  }
+
+  .company a:before {
+    $img: 'bs_logo_footer.png';
+
+    width: image-width($img);
+    height: image-height($img);
+    background: image-url($img);
+  }
+}

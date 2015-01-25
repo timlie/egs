@@ -1,0 +1,29 @@
+<?php
+
+/**
+ * @file
+ * Module file for Date Item UI module.
+ */
+
+/**
+ * Implements hook_entity_info_alter().
+ *
+ * Enables user interfaces pages.
+ */
+function date_item_ui_entity_info_alter(&$entity_info) {
+
+  // Enable User Interface for Date item types page.
+  $entity_info['date_item_type']['admin ui'] = array(
+    'path' => DATE_ITEM_ADMIN_PATH,
+    'file' => 'includes/admin.inc',
+    'controller class' => 'EntityDefaultUIController',
+  );
+
+  // Enable administration page for manage/display fields.
+  $date_item_bundles = date_item_types();
+  foreach ($date_item_bundles as $type => $info) {
+
+    $entity_info['date_item']['bundles'][$type]['admin']['access callback'] = 'user_access';
+    $entity_info['date_item']['bundles'][$type]['admin']['access arguments'] = array('administer date item types');
+  }
+}

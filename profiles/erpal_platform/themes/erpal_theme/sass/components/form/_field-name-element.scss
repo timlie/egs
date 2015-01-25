@@ -1,0 +1,13 @@
+.form-type-name-element {
+  label.element-invisible { // @TODO - the label should not be hidden and replaced by a desciption!
+    position: static !important;
+    overflow: visible;
+    clip: initial;
+    height: initial;
+    font-size: $font-size-small;
+  }
+
+  .description.description { // selector overloading
+    display: none;
+  }
+}

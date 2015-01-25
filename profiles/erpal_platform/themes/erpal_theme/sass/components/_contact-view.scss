@@ -1,0 +1,113 @@
+.page-crm-core-contact {
+  // @TODO temprary hidden fields
+  .field--type-relation-endpoint {
+    th + th,
+    td + td {
+      display: none;
+    }
+  }
+
+  // views
+  .pane-views-panes {
+    font-size: $font-size-minor;
+
+    ul {
+      list-style-type: none;
+      padding-left: 0;
+    }
+
+    li + li {
+      padding-top: 3px;
+    }
+
+    + .pane-views-panes {
+      margin-top: $inner-spacing * 2;
+    }
+  }
+
+  // view-title
+  .pane-title {
+    font-size: $font-size-minor;
+    font-weight: bold;
+
+    a {
+      @extend %link-reversed;
+    }
+  }
+
+  // quote order invoice list display
+  .qoi-teaser-list {
+    .views-row {
+      + .views-row {
+        margin-top: .25em;
+      }
+
+      > div {
+        display: inline-block;
+      }
+    }
+
+    .pdf-link,
+    .views-field-status {
+      margin-left: $ds;
+    }
+
+    .views-field-field-invoice-due-date {
+      // brackets added to view-field due to unwanted whitespacing with css :after
+      color: lighten($color-dorado, 10);
+    }
+  }
+
+  .entity-crm-core-contact > .field {
+    margin-top: $ds;
+  }
+
+  .label-above {
+    margin-bottom: .125em;
+    font-weight: bold;
+  }
+
+  .contact-data-privacy > div {
+    display: none;
+  }
+}
+
+.activity-teaser-list {
+  li > * {
+    display: inline-block;
+  }
+
+  .activity-type {
+    display: inline-block;
+    text-indent: -9999em;
+    white-space: nowrap;
+
+    &:before {
+      float: left;
+      margin-right: 0;
+      text-indent: 0;
+    }
+  }
+
+  time {
+    padding-right: $ds;
+
+    + .activity-type {
+      margin-left: 2px;
+    }
+  }
+}
+
+.contact-data-list {
+  margin: 0;
+  padding-left: 0;
+  list-style: none;
+
+  li + li {
+    margin-top: .25em;
+  }
+
+  .field {
+    display: inline-block;
+  }
+}

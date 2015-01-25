@@ -1,0 +1,32 @@
+/** @access private */
+$tooltip-background-color: $color-outer-space !global;
+/** @access private */
+$tooltip-arrow-width: 8px !global;
+
+/** */
+%tooltip-inner {
+  @include single-box-shadow(0, 2px, 8px, 0, rgba(#000, .3));
+  padding: 3px 8px;
+  line-height: 16px;
+  font-size: $font-size-small;
+  color: #fff;
+  background: $tooltip-background-color;
+  border-radius: 5px;
+}
+
+/** */
+%tooltip-arrow {
+  display: block;
+  position: absolute;
+  width: 0;
+  height: 0;
+  left: 0;
+  right: 0;
+  top: 100%;
+  margin: 0 auto;
+  // for arrow-top only, all other removed
+  border: $tooltip-arrow-width solid;
+  border-bottom-width: 0 !important; // this and following needs to be !important due to shitty plugin setup
+  border-left-color: transparent !important;
+  border-right-color: transparent !important;
+}

@@ -1,0 +1,34 @@
+.invoice-header-date {
+  @extend %pdf-header-date;
+}
+
+.invoice-header {
+  @extend %pdf-header;
+}
+
+.invoice-number {
+  @extend %pdf-node-number;
+}
+
+.invoice-footer {
+  @extend %pdf-footer;
+}
+
+.invoice-text {
+  margin-top: 50px;
+}
+
+.invoice-canceled .order-total table {
+  border: $pdf-table-border;
+  margin-top: 100px;
+}
+
+.line-items-view {
+  table {
+    width: 100%;
+  }
+
+  th {
+    text-align: left;
+  }
+}

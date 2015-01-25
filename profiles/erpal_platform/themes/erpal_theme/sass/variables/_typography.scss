@@ -1,0 +1,52 @@
+/**
+  default / most-common font-size
+  @group typo
+  */
+$base-font-size: 16px;
+/**
+  base line-height
+  @group typo
+  */
+$base-line-height: 10px;
+/**
+  @group typo
+  */
+$font-size-minor: 14px;
+
+/**
+  main / default-font - sans-serif
+  @group typo
+  */
+$font-family-default: "Tahoma", Helvetica, Arial, sans-serif;
+/**
+  in case we need a serif font
+  @group typo
+  */
+$font-family-serif: "Goudy Old Style", Garamond, "Big Caslon", "Times New Roman", serif;
+/**
+  button font
+  @group typo
+  @requires $font-family-default
+  */
+$font-family-button: $font-family-default; // Arial, Helvetica;
+
+/**
+  alias for $base-font-size
+  @group typo
+  @requires $base-font-size
+  */
+$font-size-copy: $base-font-size;
+/** @group typo */
+$font-size-small: 10px;
+/** @group typo */
+$font-size-headline: 23px;
+/** @group typo */
+$font-size-tabs: $font-size-minor;
+/** @group typo */
+$font-size-small-button: 12px;
+// $font-table-content: 12px; // not tested
+/** @group typo */
+$font-size-form: $font-size-minor;
+
+/** @group typo */
+$font-line-height-reset: 1.428571429;

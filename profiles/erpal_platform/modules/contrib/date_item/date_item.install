@@ -1,0 +1,126 @@
+<?php
+
+/**
+ * @file
+ * Installation file for Date Item module.
+ */
+
+/**
+ * Implements hook_install().
+ */
+function date_item_install() {
+
+  // Creates default date item types.
+  date_item_include('date_item_type', 'defaults');
+  $date_item_types = _date_item_default_date_item_type();
+
+  foreach ($date_item_types as $values) {
+    $object = date_item_type_create($values);
+    date_item_type_save($object);
+  }
+
+  // Creates default fields.
+  date_item_include('field_base', 'defaults');
+  $field_bases = _date_item_field_default_field_bases();
+  foreach ($field_bases as $field_base) {
+    field_create_field($field_base);
+  }
+
+  // Creates default field's instances.
+  date_item_include('field_instance', 'defaults');
+  $field_instances = _date_item_field_default_field_instances();
+  foreach ($field_instances as $field_instance) {
+    field_create_instance($field_instance);
+  }
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function date_item_uninstall() {
+
+  // Bypass entity_load() as we cannot use it here.
+  $types = db_select('date_item_type', 'dit')
+    ->fields('dit')
+    ->execute()
+    ->fetchAllAssoc('machine_name');
+
+  // Deletes attached fields.
+  foreach ($types as $machine_name => $type) {
+    field_attach_delete_bundle('date_item', $machine_name);
+  }
+}
+
+/**
+ * Implements hook_schema().
+ */
+function date_item_schema() {
+  $schema = array();
+
+  // Date item entities.
+  $schema['date_item'] = array(
+    'description' => 'The base table for the date item entities.',
+    'fields' => array(
+      'diid' => array(
+        'description' => 'The primary identifier for the date item entity.',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'type' => array(
+        'description' => 'The type of this date item.',
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => TRUE,
+      ),
+      'entity_type' => array(
+        'description' => 'Machine name of the referencing entity type.',
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => TRUE,
+      ),
+      'entity_id' => array(
+        'description' => 'ID of the referencing entity.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'unsigned' => TRUE,
+      ),
+    ),
+    'primary key' => array('diid'),
+    'foreign keys' => array(
+      'date_item_type' => array(
+        'table' => 'date_item_type',
+        'columns' => array('type' => 'machine_name'),
+      ),
+    ),
+  );
+
+  // Date item types.
+  $schema['date_item_type'] = array(
+    'description' => 'Stores information about defined date item types.',
+    'fields' => array(
+      'machine_name' => array(
+        'description' => 'The name of this date item type.',
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => TRUE,
+      ),
+      'label' => array(
+        'description' => 'The human-readable name of this date item type.',
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => TRUE,
+      ),
+      'description' => array(
+        'description' => 'The description for date item type.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+    ) + entity_exportable_schema_fields(),
+    'primary key' => array('machine_name'),
+  );
+
+  return $schema;
+}

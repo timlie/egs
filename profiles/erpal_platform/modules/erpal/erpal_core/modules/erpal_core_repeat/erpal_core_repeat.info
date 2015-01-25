@@ -1,0 +1,15 @@
+name = ERPAL Core repeat
+description = Adds Date field for ERPAL Budget and Output entities, adds repeat option for this field.
+dependencies[] = date_repeat_field
+dependencies[] = erpal_budget_ui
+dependencies[] = erpal_output_ui
+package = ERPAL Core
+core = 7.x
+
+
+; Information added by drush on 2015-01-21
+version = "7.x-3.0-alpha1+22-dev"
+core = "7.x"
+project = "erpal_core"
+datestamp = "1421852656"
+

@@ -1,0 +1,21 @@
+.vbo-views-form {
+  fieldset {
+    margin-bottom: 5px;
+    float: right;
+
+    .form-submit {
+      @include button-icon-only(bolt);
+      margin: 0;
+    }
+
+    select {
+      width: 90px;
+    }
+  }
+
+  legend {
+    margin: 5px 0;
+    font-size: $font-size-small;
+    border-bottom: 0;
+  }
+}

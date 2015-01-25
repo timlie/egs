@@ -1,0 +1,1478 @@
+<?php
+
+/**
+ * @file
+ * Provide main functionality for ERPAL commerce module.
+ */
+
+/**
+ * Implements hook_menu().
+ */
+function erpal_commerce_menu() {
+  $items = array();
+
+  $items['erpal_commerce/line_item/autocomplete'] = array(
+    'title' => 'line_item autocomplete',
+    'page callback' => 'erpal_commerce_line_item_autocomplete',
+    'access callback' => TRUE,
+    'type' => MENU_CALLBACK,
+  );
+  $items['admin/erpal/settings/vendor'] = array(
+    'title' => 'Vendor Settings',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('erpal_commerce_vendor_settings_form'),
+    'access arguments' => array('configure order settings'),
+    'type' => MENU_NORMAL_ITEM,
+    'file' => 'erpal_commerce.admin.inc',
+  );
+
+  return $items;
+}
+
+/**
+ * Implements hook_menu_alter().
+ */
+function erpal_commerce_menu_alter(&$items) {
+
+  // Change callback for order title.
+  if (!empty($items['admin/commerce/orders/%commerce_order'])) {
+    $items['admin/commerce/orders/%commerce_order']['title callback'] = 'erpal_commerce_order_label';
+  }
+}
+
+/**
+ * Defines tax rates that may be applied to line items.
+ *
+ * @return array
+ *   An array of information about available tax rates. The returned array
+ *   should be an associative array of tax rate arrays keyed by the tax rate
+ *   name. Each tax rate array can include the following keys:
+ *   - title: the title of the tax rate
+ *   - display_title: a display title for the tax type suitable for presenting
+ *     to customers if necessary; defaults to the title
+ *   - description: a short description of the tax rate
+ *   - rate: the percentage used to calculate this tax expressed as a decimal
+ *   - type: the name of the tax type this rate belongs to
+ *   - rules_component: name of the Rules component (if any) defined for
+ *     determining the applicability of the tax to a line item; defaults to
+ *     'commerce_tax_rate_[name]'. If the tax rate name is longer than 46
+ *     characters, it must have a Rules component name set here that is 64
+ *     characters or less.
+ *   - default_rules_component: boolean indicating whether or not the Tax module
+ *     should define a default default Rules component using the specified name;
+ *     defaults to TRUE.
+ *   - price_component: name of the price component defined for this tax rate
+ *     used when the tax is added to a line item; if set to FALSE, no price
+ *     component will be defined for this tax rate
+ *   - admin_list: boolean defined by the Tax UI module determining whether or
+ *     not the tax rate should appear in the admin list
+ *   - calculation_callback: name of the function used to calculate the tax
+ *     amount for a given line item, returning either a tax price array to be
+ *     added as a component to the line item's unit price or FALSE to not
+ *     include anything; defaults to 'commerce_tax_rate_calculate'.
+ */
+function erpal_commerce_commerce_tax_rate_info() {
+  $tax_rates = array();
+  $settings = variable_get('erpal_tax_settings', array());
+  if ((isset($settings['vat_rate_enable']) && !empty($settings['vat_rate_enable'])) || !isset($settings['vat_rate_enable'])) {
+    $tax_rates['vat'] = array(
+      'title' => t('VAT'),
+      'rate' => !empty($settings['vat_rate']) ? $settings['vat_rate'] : '.19',
+      'type' => 'vat',
+    );
+  }
+
+  return $tax_rates;
+}
+
+/**
+ * Implements hook_entity_info_alter().
+ */
+function erpal_commerce_entity_info_alter(&$entity_info) {
+
+  // Change callback for order label.
+  $entity_info['commerce_order']['label callback'] = 'erpal_commerce_order_label';
+  $entity_info['commerce_order']['entity keys']['label'] = 'order_number';
+
+  // Integrate commerce_customer_profile entity with inline entity form.
+  $entity_info['commerce_customer_profile']['inline entity form'] = array(
+    'controller' => 'CommerceCustomerProfileInlineEntityFormController',
+  );
+
+  // Add callbeck uri for commerce_line_item.
+  $entity_info['commerce_line_item']['uri callback'] = 'erpal_commerce_line_item_uri';
+
+  // Add callbeck uri for commerce_line_item.
+  $entity_info['commerce_line_item']['label callback'] = 'erpal_commerce_line_item_label';
+}
+
+/**
+ * Callback for entity uri of order.
+ */
+function erpal_commerce_commerce_order_uri($order) {
+  return array('path' => 'admin/commerce/orders/' . $order->order_id);
+}
+
+/**
+ * Callback for entity uri of line item.
+ */
+function erpal_commerce_line_item_uri($order) {
+  return array('path' => NULL);
+}
+
+/**
+ * Entity label callback: returns the label for an individual order.
+ */
+function erpal_commerce_order_label($entity) {
+  $type = commerce_order_type_load($entity->type);
+  if (!$type) {
+    $type = new stdClass();
+    $type->name = t('Order');
+  }
+  return t('@type @number', array('@number' => $entity->order_number, '@type' => $type->name));
+}
+
+/**
+ * Entity label callback: returns the label for an individual Line item.
+ */
+function erpal_commerce_line_item_label($entity) {
+  return $entity->line_item_label;
+}
+
+/**
+ * Implements hook_views_api().
+ */
+function erpal_commerce_views_api() {
+  return array(
+    'api' => 3,
+  );
+}
+
+/**
+ * Implements hook_references_dialog_entity_admin_paths().
+ */
+function erpal_commerce_references_dialog_entity_admin_paths() {
+  return array(
+    'commerce_order' => array(
+      'add' => 'admin/commerce/orders/add/[bundle]',
+      'edit' => 'admin/commerce/orders/[entity_id]/edit',
+    ),
+    'erpal_payment_modality' => array(
+      'add' => 'erpal/payment-modality/add/[bundle]',
+      'edit' => 'erpal/payment-modality/[entity_id]/edit',
+    ),
+  );
+}
+
+/**
+ * Implements hook_commerce_order_state_info().
+ */
+function erpal_commerce_commerce_order_state_info() {
+  return array(
+    'paid' => array(
+      'name' => 'paid',
+      'title' => t('Paid'),
+      'description' => t('Paid state.'),
+      'weight' => 17,
+      'default_status' => 'paid',
+    ),
+  );
+}
+
+/**
+ * Implements hook_commerce_order_status_info().
+ */
+function erpal_commerce_commerce_order_status_info() {
+  return array(
+    'paid' => array(
+      'name' => 'paid',
+      'title' => t('Paid'),
+      'state' => 'paid',
+    ),
+  );
+}
+
+/**
+ * Defines line item types that serve as bundles of the line item entity type.
+ *
+ * @see hook_commerce_line_item_type_info_alter()
+ */
+function erpal_commerce_commerce_line_item_type_info() {
+  $line_item_types = array();
+
+  $line_item_types['invoice'] = array(
+    'type' => 'invoice',
+    'name' => t('Invoice'),
+    'description' => t('Invoice line items creates when any bundle of erpal_output is created.'),
+    'product' => FALSE,
+    'add_form_submit_value' => t('Add Invoice item'),
+    'base' => 'erpal_commerce_line_item',
+  );
+
+  return $line_item_types;
+}
+
+/**
+ * Add default settings for custom line item types.
+ *
+ * @param array $line_item_type
+ *   The info array of the line item type being configured.
+ */
+function erpal_commerce_line_item_configuration($line_item_type) {
+  switch ($line_item_type['type']) {
+    case 'invoice':
+
+      // Include the fields file.
+      module_load_include('inc', 'erpal_commerce', 'erpal_commerce.fields');
+
+      // Add default fields for line item 'invoice' commerce bundle.
+      $fields = erpal_commerce_invoice_line_item_default_fields();
+      erpal_core_add_fields($fields['fields'], 'field');
+      erpal_core_add_fields($fields['instances'], 'instance');
+      break;
+  }
+}
+
+/**
+ * Returns an appropriate title for line item.
+ */
+function erpal_commerce_line_item_title($line_item) {
+  return $line_item->line_item_label;
+}
+
+/**
+ * Returns the elements.
+ *
+ * necessary to add a line item through a line item manager widget.
+ */
+function erpal_commerce_line_item_add_form($element, &$form_state) {
+  $form = array();
+
+  $form['label'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Label'),
+    '#description' => t('Enter the label of line item.'),
+    '#autocomplete_path' => 'erpal_commerce/line_item/autocomplete',
+    '#size' => 60,
+    '#maxlength' => 255,
+  );
+
+  return $form;
+}
+
+/**
+ * Prepare line item.
+ *
+ * @param object $line_item
+ *   The newly created line item object.
+ * @param array $element
+ *   The array representing the widget form element.
+ * @param array $form_state
+ *   The present state of the form upon the latest submission.
+ * @param array $form
+ *   The actual form array.
+ *
+ * @return NULL
+ *   NULL if all is well or an error message if something goes wrong.
+ */
+function erpal_commerce_line_item_add_form_submit(&$line_item, $element, &$form_state, $form) {
+
+  if (!empty($element['actions']['label']['#value']) && $exists_line_item = commerce_line_item_load($element['actions']['label']['#value'])) {
+    $line_item = $exists_line_item;
+  }
+  else {
+    $line_item->line_item_label = $element['actions']['label']['#value'];
+    $line_item->commerce_unit_price = array(
+      $element['#language'] => array(
+        0 => array(
+          'amount' => 0,
+          'currency_code' => 'USD',
+        ),
+      ),
+    );
+  }
+}
+
+/**
+ * Implements hook_references_dialog_widgets_alter().
+ */
+function erpal_commerce_references_dialog_widgets_alter(&$widgets) {
+  $widgets['entityreference_autocomplete']['operations']['edit']['function'] = 'erpal_commerce_dialog_entityreference_edit_link';
+  $widgets['entityreference_autocomplete']['operations']['delete'] = array(
+    'function' => 'erpal_commerce_dialog_entityreference_delete_link',
+    'title' => t('Delete dialog'),
+  );
+}
+
+/**
+ * Edit link callback for entity references.
+ */
+function erpal_commerce_dialog_entityreference_edit_link($element, $widget_settings, $field, $instance) {
+  $raw_value = $element['#default_value'] ? $element['#default_value'] : $element['#value'];
+  $entity_type = $field['settings']['target_type'];
+  // Take "label (entity id)', match the id from parenthesis.
+  if (preg_match("/.+\((\d+)\)/", $raw_value, $matches)) {
+    $value = $matches[1];
+  }
+  if (isset($value)) {
+    $entity = current(entity_load($entity_type, array($value)));
+    $title = t('Edit');
+    if ($entity_type == 'erpal_payment_modality') {
+      $title = $entity->title;
+    }
+    if (entity_access('update', $entity_type, $entity)) {
+      return array(
+        array(
+          'title' => $title,
+          'href' => references_dialog_get_admin_path($entity_type, 'edit', NULL, $entity),
+        ),
+      );
+    }
+  }
+  return array();
+}
+
+/**
+ * Delete link callback for entity references.
+ */
+function erpal_commerce_dialog_entityreference_delete_link($element, $widget_settings, $field, $instance) {
+  $raw_value = $element['#default_value'] ? $element['#default_value'] : $element['#value'];
+  $entity_type = $field['settings']['target_type'];
+  // Take "label (entity id)', match the id from parenthesis.
+  if (preg_match("/.+\((\d+)\)/", $raw_value, $matches)) {
+    $value = $matches[1];
+  }
+  if (isset($value)) {
+    $entity = current(entity_load($entity_type, array($value)));
+
+    if (entity_access('delete', $entity_type, $entity)) {
+      return array(
+        array(
+          'title' => t('Delete'),
+        ),
+      );
+    }
+  }
+  return array();
+}
+
+/**
+ * Implements hook_field_formatter_info().
+ */
+function erpal_commerce_field_formatter_info() {
+  return array(
+    'erpal_commerce_commerce_price_base_price' => array(
+      'label' => t('Base price component'),
+      'field types' => array('commerce_price'),
+      'settings' => array(
+        'calculation' => FALSE,
+      ),
+    ),
+  );
+}
+
+/**
+ * Implements hook_field_formatter_view().
+ */
+function erpal_commerce_field_formatter_view($entity_type, $entity, $field, $instance, $langcode, $items, $display) {
+  $element = array();
+  // Loop through each price value in this field.
+  foreach ($items as $delta => $item) {
+    // Do not render a price if the amount is NULL (i.e. non-zero empty value).
+    if (is_null($item['amount'])) {
+      // TODO: Consider if we should render as N/A or something indicating a
+      // price was not available as opposed to just leaving a blank.
+      continue;
+    }
+    $base_component = commerce_price_component_total($item, 'base_price');
+    $element[$delta] = array(
+      '#markup' => commerce_currency_format($base_component['amount'], $base_component['currency_code'], $entity),
+    );
+  }
+
+  return $element;
+}
+
+/**
+ * Implements hook_field_widget_info().
+ */
+function erpal_commerce_field_widget_info() {
+  $widgets = array();
+
+  $widgets['erpal_commerce_line_item'] = array(
+    'label' => t('ERPAL Dynamic line item widget'),
+    'field types' => array('commerce_line_item_reference'),
+    'settings' => array(
+      'line_item_type' => 'product',
+    ),
+  );
+
+  return $widgets;
+}
+
+/**
+ * Implements hook_field_widget_settings_form().
+ */
+function erpal_commerce_field_widget_settings_form($field, $instance) {
+  $widget = $instance['widget'];
+  $defaults = field_info_widget_settings($widget['type']);
+  $settings = array_merge($defaults, $widget['settings']);
+  $form = array();
+
+  if ($widget['type'] == 'erpal_commerce_line_item') {
+    $form['line_item_type'] = array(
+      '#type' => 'select',
+      '#multiple' => TRUE,
+      '#title' => t('Available countries'),
+      '#options' => array_keys(commerce_line_item_types()),
+      '#default_value' => $settings['line_item_type'],
+    );
+  }
+
+  return $form;
+}
+
+/**
+ * Implements hook_field_widget_form().
+ */
+function erpal_commerce_field_widget_form(&$form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
+  $settings = $instance['widget']['settings'];
+  $form['#attached']['js'] = array(
+    drupal_get_path('module', 'erpal_commerce') . '/js/line_item_widget.js',
+  );
+  $form['#attached']['css'] = array(
+    drupal_get_path('module', 'erpal_commerce') . '/css/line_item_widget.css',
+  );
+
+  if (!empty($form_state['triggering_element']['#field_name']) && $form_state['triggering_element']['#field_name'] == 'commerce_product') {
+    $array_parents = $form_state['triggering_element']['#array_parents'];
+    $value_product = drupal_array_get_nested_value($form_state['values'], $array_parents);
+
+    array_pop($array_parents);
+    array_pop($array_parents);
+    if (end($array_parents) == $delta) {
+      $product = $value_product;
+      $values = drupal_array_get_nested_value($form_state['values'], $array_parents);
+      if (!empty($values['line_item']->line_item_id)) {
+        $items[$delta]['line_item_id'] = $values['line_item']->line_item_id;
+      }
+    }
+  }
+
+  $element['#delta'] = $delta;
+  $element['#line_item_type'] = $settings['line_item_type'];
+  if (!empty($items[$delta]['line_item_id'])) {
+    $line_item = commerce_line_item_load($items[$delta]['line_item_id']);
+  }
+  else {
+    $line_item = commerce_line_item_new($settings['line_item_type'], $element['#entity']->order_id);
+  }
+
+  $element += array(
+    '#type' => 'fieldset',
+    '#tree' => TRUE,
+    '#language' => $langcode,
+    '#prefix' => '<div id="erpal-commerce-wrapper--' . $delta . '">',
+    '#suffix' => '</div>',
+  );
+  $element['line_item'] = array(
+    '#type' => 'value',
+    '#value' => $line_item,
+  );
+
+  $element['line_item_label'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Title'),
+    '#description' => t('Supply the line item label to be used for this line item.'),
+    '#default_value' => $line_item->line_item_label,
+    '#maxlength' => 128,
+    '#size' => 15,
+    '#required' => !empty($line_item->line_item_id),
+    '#fieldset' => 'line_item_details',
+    '#weight' => -3,
+  );
+  $element['quantity'] = array(
+    '#type' => 'textfield',
+    '#datatype' => 'integer',
+    '#title' => t('Quantity'),
+    '#description' => t('The quantity of line items.'),
+    '#default_value' => (int) $line_item->quantity,
+    '#size' => 4,
+    '#maxlength' => max(4, strlen($line_item->quantity)),
+    '#required' => !empty($line_item->line_item_id),
+    '#fieldset' => 'line_item_details',
+    '#weight' => 5,
+  );
+
+  $element += _field_invoke_default('form', 'commerce_line_item', $line_item, $form, $form_state);
+
+  // Added ajax for product field.
+  if (!empty($element['commerce_product'])) {
+    $element['commerce_product']['#weight'] = -4;
+    $element['commerce_product'][$langcode]['#required'] = FALSE;
+    $element['commerce_product'][$langcode]['#size'] = 15;
+    $element['commerce_product'][$langcode]['#ajax'] = array(
+      'callback' => 'erpal_commerce_field_widget_callback',
+      'wrapper' => 'erpal-commerce-wrapper--' . $delta,
+      'event' => 'change blur'
+    );
+  }
+
+  $element['commerce_unit_price'][$langcode][0]['amount']['#required'] = !empty($line_item->line_item_id);
+
+  if (!empty($product[0]['product_id'])) {
+    $product = commerce_product_load($product[0]['product_id']);
+    $input = &$form_state['input']['commerce_line_items'][$langcode][$delta];
+    
+    // Set title from product.
+    unset($input['line_item_label']);
+    $element['line_item_label']['#default_value'] = t('!title (!sku)', array('!title' => $product->title, '!sku' => $product->sku));
+
+    // Set price from product.
+    $commerce_price = field_get_items('commerce_product', $product, 'commerce_price');
+
+    unset($input['commerce_unit_price']);
+    $element['commerce_unit_price'][$langcode][0]['amount']['#default_value'] = commerce_currency_amount_to_decimal($commerce_price[0]['amount'], $commerce_price[0]['currency_code']);
+    $element['commerce_unit_price'][$langcode][0]['currency_code']['#default_value'] = $commerce_price[0]['currency_code'];
+
+    // Set unit from product.
+    $field_product_unit = field_get_items('commerce_product', $product, 'field_product_unit');
+    unset($input['field_line_item_unit']);
+    $element['field_line_item_unit'][$langcode]['#default_value'] = $field_product_unit[0]['value'];
+
+  }
+
+  $element['delete'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Delete'),
+    '#weight' => 100,
+  );
+
+  $element['commerce_display_path']['#access'] = FALSE;
+  $element['#element_validate'] = array('erpal_commerce_line_item_validate');
+
+  return $element;
+}
+
+/**
+ * Ajax callback function.
+ */
+function erpal_commerce_field_widget_callback($form, &$form_state) {
+  $array_parents = $form_state['triggering_element']['#array_parents'];
+  array_pop($array_parents);
+  array_pop($array_parents);
+
+  return drupal_array_get_nested_value($form, $array_parents);
+}
+
+/**
+ * Validation callback for a commerce_line_item element.
+ */
+function erpal_commerce_line_item_validate($element, &$form_state, $form) {
+  $value = array();
+  $error = FALSE;
+  $delta = $element['#delta'];
+  $line_item_type = $element['#line_item_type'];
+
+  if (!empty($form_state['values']['commerce_line_items'][LANGUAGE_NONE][$delta])) {
+    $values = $form_state['values']['commerce_line_items'][LANGUAGE_NONE][$delta];
+    $line_item = $values['line_item'];
+
+    unset($values['line_item']);
+    $line_item = array_merge((array) $line_item, $values);
+    $line_item = (object) $line_item;
+
+    if (!empty($form_state['triggering_element']) && $form_state['triggering_element']['#id'] == 'edit-submit') {
+      if (!empty($values['delete'])) {
+        return;
+      }
+
+      // Validate the quantity of each line item.
+      $element_name = implode('][', $element['quantity']['#parents']);
+      $quantity = $element['quantity']['#value'];
+
+      if (!is_numeric($quantity) || $quantity <= 0) {
+        $error = TRUE;
+        form_set_error($element_name, t('You must specify a positive number for the quantity'));
+      }
+      elseif ($element['quantity']['#datatype'] == 'integer' &&
+        (int) $quantity != $quantity) {
+        $error = TRUE;
+        form_set_error($element_name, t('You must specify a whole number for the quantity.'));
+      }
+      else {
+        $line_item->quantity = $quantity;
+      }
+
+      // Manually validate the unit price of each line item.
+      $unit_price = $values['commerce_unit_price'];
+      $amount = $unit_price[$element['#language']][0]['amount'];
+      $currency_code = $unit_price[$element['#language']][0]['currency_code'];
+      $name = implode('][',
+        array_merge(
+          $element['commerce_unit_price']['#parents'],
+          array($element['#language'], 0, 'amount')
+        )
+      );
+
+      if (!empty($line_item->line_item_label) && empty($amount)) {
+        $error = TRUE;
+        form_set_error($name, "Amount can't be empty.");
+      }
+
+      if (!empty($amount) && empty($line_item->line_item_label)) {
+        $element_name = implode('][', $element['line_item_label']['#parents']);
+        $error = TRUE;
+        form_set_error($element_name, "Title can't be empty.");
+      }
+
+      // Display an error message for a non-numeric unit price.
+      if (!empty($amount) && !empty($line_item->line_item_label)) {
+        if (!is_numeric($amount)) {
+          $error = TRUE;
+          form_set_error($name, 'You must enter a numeric value for the unit price.');
+        }
+        elseif ($amount <> $line_item->commerce_unit_price[$element['#language']][0]['amount'] ||
+          $currency_code <> $line_item->commerce_unit_price[$element['#language']][0]['currency_code']) {
+          // Otherwise update the unit price amount if it has changed.
+          $line_item->commerce_unit_price = $unit_price;
+        }
+
+        // Helper function for cleare entity referance fields.
+        $check_field = function($line_item, $field_name, $element) {
+          $field = field_get_items('commerce_line_item', $line_item, $field_name);
+          if (!empty($field)) {
+            $language = field_language('commerce_line_item', $line_item, $field_name);
+            $line_item->{$field_name}[$language] = array();
+            foreach ($field as $id) {
+              if (!empty($id['target_id'])) {
+                $line_item->{$field_name}[$language][] = array('target_id' => $id['target_id']);
+
+                // Check if not have more than 2 payment modalities for line
+                // item of unit "time".
+                if ($field_name == 'field_payment_modality') {
+                  $line_item_unit = field_get_items('commerce_line_item', $line_item, 'field_line_item_unit');
+                  // Get list of time measures (day, hour, minute, etc).
+                  $time_measures = array_keys(erpal_core_units_time());
+                  if (!empty($line_item_unit[0]['value']) && in_array($line_item_unit[0]['value'], $time_measures)) {
+                    $payment_modality = erpal_payment_modality_load($id['target_id']);
+                    // Check if current payment modality not due an order.
+                    $field_due_with = field_get_items('erpal_payment_modality', $payment_modality, 'field_due_with');
+                    if (!empty($field_due_with[0]['value']) && $field_due_with[0]['value'] != 'delivery') {
+                      continue;
+                    }
+                    else {
+                      if (!isset($i)) {
+                        $i = 0;
+                      }
+                      $i++;
+                    }
+
+                    if ($i >= 2) {
+                      $element_name = implode('][', $element['field_payment_modality']['#parents']);
+                      form_set_error($element_name, "We can't have 2 payment modalities with 'on delivery' in line item with unit time(hour, week, day etc.)");
+                    }
+                  }
+                }
+              }
+            }
+          }
+        };
+
+        // Cleare entity reference fields.
+        $check_field($line_item, 'field_payment_modality', $element);
+        $check_field($line_item, 'field_line_item_order', $element);
+
+        // If this type specifies a valid add form callback function...
+        if ($callback = commerce_line_item_type_callback($line_item_type, 'add_form_submit')) {
+          // Allow the callback to alter data onto the line item to be saved and
+          // to return an error message if something goes wrong.
+          $error = $callback($line_item, $element, $form_state, $form);
+        }
+
+        // If we didn't end up with any errors...
+        if (empty($error)) {
+          // Save it and add it to the line item reference field's values array.
+          // Only save if values were actually changed.
+          if ($line_item != $element['line_item']['#value']) {
+            commerce_line_item_rebase_unit_price($line_item);
+            commerce_line_item_save($line_item);
+          }
+
+          // If the item is saved, we set a variable to notify the user the
+          // need of saving the order.
+          $form_state['line_item_save_warning'] = TRUE;
+        }
+      }
+    }
+    if (!empty($line_item->line_item_id)) {
+      $value = array('line_item_id' => $line_item->line_item_id);
+      form_set_value($element, $value, $form_state);
+    }
+  }
+
+}
+
+/**
+ * Implements hook_form_alter().
+ */
+function erpal_commerce_form_alter(&$form, &$form_state, $form_id) {
+  // Fix path query maxlength.
+  if (in_array($form_id, array('cat_ui_add_form', 'cat_ui_edit_form')) && isset($form['cat_actions'])) {
+    foreach ($form['cat_actions'] as $key => $value) {
+      if (isset($value['path_query'])) {
+        $form['cat_actions'][$key]['path_query']['#maxlength'] = 512;
+      }
+    }
+  }
+
+  // Small changes for exposed filters on revenue.
+  if ($form_id == 'views_exposed_form') {
+    $ids = array(
+      'views-exposed-form-erpal-invoice-line-items-page-2',
+      'views-exposed-form-erpal-invoice-line-items-panel-pane-1',
+      'views-exposed-form-erpal-invoice-line-items-panel-pane-2',
+    );
+
+    // So if line item referenced to commerce_order - not delivered, if to
+    // invoice than line item is delivered.
+    if (in_array($form['#id'], $ids)) {
+      if (!empty($form['type']['#options'])) {
+        $form['type']['#options']['commerce_order'] = t('No');
+        $form['type']['#options']['invoice'] = t('Yes');
+      }
+      // Preselect "Billed" exposed filter to "No".
+      if (!isset($form_state['view']->exposed_input['type'])) {
+        $form_state['input']['type'] = 'commerce_order';
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function erpal_commerce_form_commerce_order_order_form_alter(&$form, &$form_state, $form_id) {
+  global $user;
+  $types = array(
+    'quote' => t('Quote'),
+    'commerce_order' => t('Order'),
+    'invoice' => t('Invoice'),
+  );
+  // Set current user info.
+  if (empty($form['user']['name']['#default_value'])) {
+    $form['user']['name']['#default_value'] = $user->name;
+  }
+  if (empty($form['user']['mail']['#default_value'])) {
+    $form['user']['mail']['#default_value'] = $user->mail;
+  }
+  // Change title for commerce_order bundle.
+  if (empty($form_state['commerce_order']->order_id)) {
+    $a = ($form_state['commerce_order']->type == 'quote') ? 'a' : 'an';
+    drupal_set_title(t('Create @a @type', array('@a' => $a, '@type' => $types[$form_state['commerce_order']->type])));
+
+    // Set default vendor.
+    if (isset($form['field_vendor']) && isset($form['field_vendor_address'])) {
+      $settings = variable_get('erpal_vendor_settings', array());
+      $language = $form['field_vendor']['#language'];
+      $vendor = crm_core_contact_load($settings['vendor_id']);
+      $default_value = crm_core_contact_label($vendor) . ' (' . $vendor->contact_id . ')';
+      $form['field_vendor'][$language][0]['target_id']['#default_value'] = $default_value;
+
+      $language = $form['field_vendor_address']['#language'];
+      $form['field_vendor_address'][$language]['#options'] = erpal_commerce_get_profiles($vendor->contact_id);
+      $form['field_vendor_address'][$language]['#default_value'] = $settings['customer_profile_id'];
+    }
+    if ($form_state['commerce_order']->type == 'invoice') {
+      $form['actions']['submit']['#validate'][] = 'erpal_commerce_invoice_form_validate';
+    }
+  }
+  else {
+    // Change page title for edit order page.
+    drupal_set_title(t('Edit @type @order', array('@order' => $form_state['commerce_order']->order_number, '@type' => $types[$form_state['commerce_order']->type])));
+    // Add delete button.
+    $form['actions']['delete'] = array(
+      '#type' => 'submit',
+      '#value' => t('Delete'),
+      '#weight' => 41,
+      '#submit' => array('erpal_commerce_order_delete_redirect'),
+    );
+    $form['actions']['delete']['#suffix'] = $form['actions']['submit']['#suffix'];
+    $form['actions']['submit']['#suffix'] = '';
+  }
+
+  // Fill default customer billing information.
+  if (in_array($form_state['commerce_order']->type, $types)) {
+    $params = drupal_get_query_parameters();
+    if (isset($params['field_customer'])) {
+      $customer = crm_core_contact_load($params['field_customer']);
+      $language = $form['commerce_customer_billing']['#language'];
+      $customer_profiles = field_get_items('crm_core_contact', $customer, 'field_customer_profiles');
+
+      if (isset($customer_profiles[0]['target_id'])) {
+        $form['commerce_customer_billing'][$language]['#options'] = erpal_commerce_get_profiles($params['field_customer']);
+        $form['commerce_customer_billing'][$language]['#default_value'] = array($customer_profiles[0]['target_id']);
+      }
+    }
+  }
+
+  // Set default sales process if we use another type of activities.
+  if ($form_state['commerce_order']->type == 'quote') {
+    $params = drupal_get_query_parameters();
+    if (!empty($params['activity_id'])) {
+      $activity = crm_core_activity_load($params['activity_id']);
+      $language = $form['field_sales_process']['#language'];
+      $sales_process = field_get_items('crm_core_activity', $activity, 'field_activity_sales_process');
+      if (!empty($sales_process[0]['target_id'])) {
+        $sales_process = crm_core_activity_load($sales_process[0]['target_id']);
+
+        if (!empty($sales_process->activity_id)) {
+          $form['field_sales_process'][$language][0]['target_id']['#default_value'] = $sales_process->title . ' (' . $sales_process->activity_id . ')';
+        }
+
+        // Set default Customer for sales Process.
+        $customer_profiles = field_get_items('crm_core_activity', $sales_process, 'field_activity_customer');
+        if (isset($customer_profiles[0]['target_id'])) {
+          $customer = crm_core_contact_load($customer_profiles[0]['target_id']);
+          $default_value = crm_core_contact_label($customer) . ' (' . $customer->contact_id . ')';
+          $form['field_customer'][$language][0]['target_id']['#default_value'] = $default_value;
+
+          $language = $form['commerce_customer_billing']['#language'];
+          $options = erpal_commerce_get_profiles($customer->contact_id);
+          $form['commerce_customer_billing'][$language]['#options'] = $options;
+          $form['commerce_customer_billing'][$language]['#default_value'] = erpal_commerce_set_default_profile($options);
+        }
+      }
+    }
+  }
+
+  // Change list of statuses for order.
+  if ($form_state['commerce_order']->type == 'commerce_order') {
+    $form['order_status']['status']['#options'] = array(
+      'Pending' => $form['order_status']['status']['#options']['Pending'],
+      'Completed' => $form['order_status']['status']['#options']['Completed'],
+      'Canceled' => $form['order_status']['status']['#options']['Canceled'],
+    );
+  }
+
+  // Change list of statuses for invoice.
+  if ($form_state['commerce_order']->type == 'invoice') {
+    $form['order_status']['status']['#options'] = array(
+      'Invoiced' => $form['order_status']['status']['#options']['Invoiced'],
+      'Canceled' => $form['order_status']['status']['#options']['Canceled'],
+      'Paid' => $form['order_status']['status']['#options']['Paid'],
+    );
+    $form['actions']['submit']['#value'] = t('Save invoice');
+    $form['actions']['submit']['#submit'][] = 'erpal_commerce_invoice_form_submit';
+  }
+
+  // Change list of selectable line item bundles.
+  if (!empty($form['commerce_line_items'][$form['commerce_line_items']['#language']]['actions']['line_item_type'])) {
+    $options = &$form['commerce_line_items'][$form['commerce_line_items']['#language']]['actions']['line_item_type']['#options'];
+  }
+  if (!empty($form['commerce_line_items'][$form['commerce_line_items']['#language']]['actions']['bundle']['#options'])) {
+    $options = &$form['commerce_line_items'][$form['commerce_line_items']['#language']]['actions']['bundle']['#options'];
+  }
+  if (!empty($options)) {
+    if ($form_state['commerce_order']->type == 'invoice') {
+      $options = array('invoice' => $options['invoice']);
+    }
+    else {
+      unset($options['invoice']);
+    }
+  }
+}
+
+/**
+ * Change status AGAIN for properly work of rules in commerce billy module.
+ */
+function erpal_commerce_invoice_form_validate(&$form, &$form_state) {
+  $form_state['values']['status'] = $form_state['values']['status_original'];
+}
+
+/**
+ * Change order id and delivery date fir every line item in invoice.
+ */
+function erpal_commerce_invoice_form_submit(&$form, &$form_state) {
+  $invoice = $form_state['commerce_order'];
+  foreach (entity_metadata_wrapper('commerce_order', $invoice)->commerce_line_items as $line_item_wrapper) {
+    $line_item_wrapper->order_id->set($invoice->order_id);
+    $line_item_wrapper->field_line_item_delivery_date->set(REQUEST_TIME);
+    $line_item_wrapper->save();
+  }
+}
+
+/**
+ * Returns output for line item autocompletes.
+ */
+function erpal_commerce_line_item_autocomplete($string = '') {
+  $result = array();
+  if ($string) {
+    $query = db_select('commerce_line_item', 'cli')
+      ->fields('cli', array('line_item_id', 'line_item_label'))
+      ->condition('cli.line_item_label', '%' . db_like($string) . '%', 'LIKE')
+      ->condition('cli.type', 'invoice');
+    $query->join('commerce_order', 'co', 'co.order_id != cli.order_id');
+    $query->condition('co.type', 'invoice');
+
+    $result = $query->execute()->fetchAllKeyed();
+  }
+  drupal_json_output($result);
+}
+
+/**
+ * Implements hook_field_widget_form_alter().
+ */
+function erpal_commerce_field_widget_form_alter(&$element, &$form_state, $context) {
+  if ($context['field']['type'] == 'commerce_customer_profile_reference') {
+    if ($context['instance']['widget']['type'] == 'options_select') {
+      $columns = array(
+        'commerce_customer_address_name_line',
+        'commerce_customer_address_thoroughfare',
+        'commerce_customer_address_premise',
+        'commerce_customer_address_locality',
+        'commerce_customer_address_country',
+      );
+      $element['#options'] = erpal_commerce_generete_customer_labels($element['#options'], 'commerce_customer_address', $columns);
+    }
+  }
+
+  // Change button label for customer profile field.
+  if ($context['field']['field_name'] == 'field_customer_profiles') {
+    if ($context['instance']['widget']['type'] == 'inline_entity_form') {
+      $element['actions']['ief_add']['#value'] = t('Add new address');
+    }
+  }
+}
+
+/**
+ * Perform alterations before an entity form is included in the IEF widget.
+ *
+ * @param array $entity_form
+ *   Nested array of form elements that comprise the entity form.
+ * @param array $form_state
+ *   The form state of the parent form.
+ */
+function erpal_commerce_inline_entity_form_entity_form_alter(&$entity_form, &$form_state) {
+  if (!empty($entity_form['#bundle']) && $entity_form['#bundle'] == 'billing' && $entity_form['#entity_type'] == 'commerce_customer_profile') {
+    $entity_form['#title'] = t('Add new address');
+    $entity_form['actions']['ief_add_save']['#value'] = t('Create address');
+    $entity_form['actions']['ief_edit_save']['#value'] = t('Update address');
+  }
+}
+
+/**
+ * Generate customer lables for Customer profile manager field.
+ *
+ * @param array $profile_ids
+ *   Ids of customer profiles as array.
+ *
+ * @param string $field_name
+ *   Name of field which we use.
+ *
+ * @param array $columns
+ *   Columns of field which we will use for name.
+ *
+ * @return array
+ *   of labels with ids for customer profiles
+ */
+function erpal_commerce_generete_customer_labels($profile_ids, $field_name, $columns) {
+  $none = array_shift($profile_ids);
+  $labels = array('_none' => $none);
+  if ($profile_ids) {
+    $fields = array_merge(array('entity_id'), $columns);
+    $result = db_select('field_data_' . $field_name, $field_name)
+      ->fields($field_name, $fields)
+      ->condition('entity_id', $profile_ids, 'IN')
+      ->condition('entity_type', 'commerce_customer_profile')
+      ->execute()
+      ->fetchAllAssoc('entity_id');
+
+    foreach ($result as $key => $fields) {
+      $labels[$key] = implode(' -- ', (array) $fields);
+    }
+  }
+  return $labels;
+}
+
+/**
+ * Create array with all orders on site.
+ *
+ * @return array
+ *   of labels with ids for orders.
+ */
+function erpal_commerce_orders() {
+  return db_select('commerce_order')
+    ->fields('commerce_order', array('order_id', 'order_number'))
+    ->condition('type', 'commerce_order')
+    ->execute()
+    ->fetchAllKeyed();
+}
+
+/**
+ * Implements hook_action_info().
+ */
+function erpal_commerce_action_info() {
+  return array(
+    'erpal_commerce_create_invoice' => array(
+      'type' => 'commerce_line_item',
+      'label' => t('Create invoice'),
+      'description' => t('Creates an invoice from line items'),
+      'configurable' => TRUE,
+    ),
+    'erpal_commerce_delete_invoice' => array(
+      'type' => 'commerce_order',
+      'label' => t('Delete invoice'),
+      'description' => t('Detele an invoice with or without line items'),
+      'configurable' => TRUE,
+    ),
+  );
+}
+
+/**
+ * Callback for configurable bulk operation for creating an invoice.
+ */
+function erpal_commerce_create_invoice_form($context, &$form_state) {
+  global $user;
+
+  // Try to find order for selected line items.
+  $order_id = erpal_commerce_create_invoice_search_order($context, $form_state);
+
+  // Include the forms file from the Order module.
+  module_load_include('inc', 'commerce_order_ui', 'includes/commerce_order.forms');
+
+  // Replicate order to invoice and unset unused fields.
+  if ($order_id) {
+    $order = replicate_clone_entity('commerce_order', commerce_order_load($order_id));
+  }
+  else {
+    $order = commerce_order_new($user->uid, NULL, 'invoice');
+  }
+
+  $order_number = $order->order_number;
+  $order->type = 'invoice';
+  $order->order_id = NULL;
+  unset($order->order_number,
+        $order->revision_id,
+        $order->revision_uid,
+        $order->created,
+        $order->changed,
+        $order->hostname,
+        $order->field_order_date,
+        $order->field_order_text,
+        $order->field_order,
+        $order->commerce_line_items);
+  $order->uid = $user->uid;
+  $form = commerce_order_order_form(array(), $form_state, $order);
+
+  // Hide not needed fields.
+  $hide_fields = array(
+    'commerce_line_items',
+    'field_commerce_billy_cancel_date',
+  );
+  if ($order_id) {
+    $language = $form['field_invoice_order']['#language'];
+    $form['field_invoice_order'][$language][0]['target_id']['#default_value'] = 'Order ' . $order_number . ' (' . $order_id . ')';
+  }
+
+  foreach ($hide_fields as $hide_field) {
+    if (!empty($form[$hide_field])) {
+      $form[$hide_field]['#access'] = FALSE;
+    }
+  }
+
+  return $form;
+}
+
+/**
+ * Try to find order for selected line items.
+ */
+function erpal_commerce_create_invoice_search_order($context, $form_state) {
+  $order_id = FALSE;
+  if (!empty($form_state['values']['views_bulk_operations'])) {
+    $values = array_filter($form_state['values']['views_bulk_operations']);
+    $line_item_id = reset($values);
+    $line_item = commerce_line_item_load($line_item_id);
+    $order = field_get_items('commerce_line_item', $line_item, 'field_line_item_order');
+    if (!empty($order)) {
+      $order_id = $order[0]['target_id'];
+    }
+  }
+  if (!$order_id && is_numeric(arg(3))) {
+    $order_id = arg(3);
+  }
+  return $order_id;
+}
+
+/**
+ * Validate handler for bulk operation configuration form for creating invoice.
+ */
+function erpal_commerce_create_invoice_validate($form, &$form_state) {
+  commerce_order_order_form_validate($form, $form_state);
+}
+
+/**
+ * Submit handler for bulk operation configuration form for creating an invoice.
+ */
+function erpal_commerce_create_invoice_submit($form, &$form_state) {
+  commerce_order_order_form_submit($form, $form_state);
+  // Add to context order id for using in action.
+  $values['order_id'] = $form_state['commerce_order']->order_id;
+  $_GET['destination'] = 'invoice/' . $form_state['commerce_order']->order_id;
+  return $values;
+}
+
+/**
+ * Callback for the action erpal_commerce_create_invoice.
+ *
+ * Create an invoice by invoice line items.
+ */
+function erpal_commerce_create_invoice(&$line_items, $context) {
+
+  $order = commerce_order_load($context['order_id']);
+
+  // Add line item to order.
+  $language = field_language('commerce_order', $order, 'commerce_line_items');
+  $order->commerce_line_items[$language][] = array(
+    'line_item_id' => $line_items->line_item_id,
+  );
+
+  // Ensure the attached line items are associated with the order if they do not
+  // have an order_id set yet.
+  foreach (entity_metadata_wrapper('commerce_order', $order)->commerce_line_items as $delta => $line_item_wrapper) {
+    if ($line_item_wrapper->order_id->value() != $order->order_id) {
+      $line_item_wrapper->order_id->set($order->order_id);
+      $line_item_wrapper->field_line_item_delivery_date->set(REQUEST_TIME);
+      $line_item_wrapper->save();
+    }
+  }
+  commerce_order_save($order);
+  drupal_set_message(t('Invoice @invoice was created.', array('@invoice' => $order->order_number)), 'status', FALSE);
+}
+
+/**
+ * Callback for configurable bulk operation for deleting an invoice.
+ */
+function erpal_commerce_delete_invoice_form($context, &$form_state) {
+  $form = array();
+  $form['title'] = array(
+    '#markup' => t('Do you want to remove line items with invoice?'),
+  );
+  $form['delete'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Delete line items'),
+  );
+
+  return $form;
+}
+
+/**
+ * Submit handler for bulk operation configuration form for delete an invoice.
+ */
+function erpal_commerce_delete_invoice_submit($form, &$form_state) {
+  $values['delete'] = $form_state['values']['delete'];
+  return $values;
+}
+
+/**
+ * Callback for the action erpal_commerce_delete_invoice.
+ */
+function erpal_commerce_delete_invoice(&$invoice, $context) {
+  if (!$context['delete']) {
+    $language = field_language('commerce_order', $invoice, 'commerce_line_items');
+    // Remove line items from invoice entity and make them available
+    // for new invoices creation.
+    foreach (entity_metadata_wrapper('commerce_order', $invoice)->commerce_line_items as $delta => $line_item_wrapper) {
+      $order = $line_item_wrapper->field_line_item_order->value();
+      $line_item_wrapper->order_id->set($order->order_id);
+      $line_item_wrapper->save();
+      unset($invoice->commerce_line_items[$language][$delta]);
+    }
+    commerce_order_save($invoice);
+  }
+  // Delete invoice entity, by default line items will be removed too.
+  entity_delete('commerce_order', $invoice->order_id);
+}
+
+/**
+ * Implements hook_flush_caches().
+ */
+function erpal_commerce_flush_caches() {
+
+  // Include the fields file.
+  module_load_include('inc', 'erpal_commerce', 'erpal_commerce.fields');
+
+  // Add default fields for 'order' commerce bundle.
+  $fields = erpal_commerce_order_default_fields();
+  erpal_core_add_fields($fields['fields'], 'field');
+  erpal_core_add_fields($fields['instances'], 'instance');
+
+  // Change field 'commerce_customer_billing' widget to 'options_select' and
+  // add dfv settings for all needed bundles of commerce order entity.
+  $commerce_order_types = array('invoice', 'commerce_order', 'quote');
+  foreach ($commerce_order_types as $commerce_order_type) {
+    $info_instance = field_info_instance('commerce_order', 'commerce_customer_billing', $commerce_order_type);
+    if (!empty($info_instance) && $info_instance['widget']['module'] != 'options') {
+      $info_instance['widget'] = array(
+        'module' => 'options',
+        'settings' => array(
+          'wrapper_type' => '',
+        ),
+        'type' => 'options_select',
+        'weight' => -5,
+      );
+      $info_instance['settings']['dfv'] = array(
+        'status' => 1,
+        'parent' => 'field_customer',
+        'view' => 'erpal_customer_profile:dfv_1',
+      );
+      $info_instance['label'] = t('Customer Address');
+      field_update_instance($info_instance);
+    }
+  }
+  // Enable reference dialog for invoice order field.
+  $info_instance = field_info_instance('commerce_order', 'field_invoice_order', 'invoice');
+  $info_instance['widget']['settings']['references_dialog_add'] = 1;
+  $info_instance['widget']['settings']['references_dialog_edit'] = 1;
+  $info_instance['widget']['settings']['references_dialog_search'] = 1;
+  $info_instance['widget']['settings']['references_dialog_search_view'] = '';
+  field_update_instance($info_instance);
+
+  // Add default fields for working with commerce customer profile.
+  $fields = erpal_commerce_customer_profile_default_fields();
+  erpal_core_add_fields($fields['fields'], 'field');
+  erpal_core_add_fields($fields['instances'], 'instance');
+
+  // Add default fields for 'quote' commerce bundle.
+  $fields = erpal_commerce_quote_default_fields();
+  erpal_core_add_fields($fields['fields'], 'field');
+  erpal_core_add_fields($fields['instances'], 'instance');
+
+  $info_instance = field_info_instance('commerce_order', 'commerce_line_items', 'invoice');
+  if (!empty($info_instance)) {
+    $view = 'erpal_invoice_line_items|block_1';
+    $info_instance['display']['administrator']['settings']['view'] = $view;
+    $info_instance['display']['customer']['settings']['view'] = $view;
+    $info_instance['display']['default']['settings']['view'] = $view;
+    field_update_instance($info_instance);
+  }
+
+  // Change all fields from date/time to simple date.
+  $date_fields = array(
+    'field_commerce_billy_cancel_date',
+    'field_commerce_billy_i_date',
+    'field_date_item_single'
+  );
+  foreach ($date_fields as $date_field) {
+    $field = field_info_field($date_field);
+    if ($field) {
+      $field['settings']['granularity'] = array(
+        'day' => 'day',
+        'hour' => 0,
+        'minute' => 0,
+        'month' => 'month',
+        'second' => 0,
+        'year' => 'year',
+      );
+      field_update_field($field);
+    }
+  }
+
+  // Change format  of date from long to medium.
+  $date_fields = array(
+    'single',
+    'repeatable',
+    'with_end',
+  );
+  foreach ($date_fields as $date_field) {
+    $info_instance = field_info_instance('date_item', 'field_date_item_' . $date_field, $date_field);
+    if ($info_instance) {
+      $info_instance['display']['default']['settings']['format_type'] = 'medium';
+      field_update_instance($info_instance);
+    }
+  }
+}
+
+/**
+ * Redirect to order deletion.
+ *
+ * @see erpal_commerce_order_delete_form()
+ */
+function erpal_commerce_order_delete_redirect($form, &$form_state) {
+  $des = drupal_get_destination();
+  if (!empty($des['destination'])) {
+    unset($_GET['destination']);
+  }
+  switch ($form_state['commerce_order']->type) {
+    case 'commerce_order':
+      $des['destination'] = 'orders';
+      break;
+    case 'qoute':
+      $des['destination'] = 'qoutes';
+      break;
+    case 'invoice':
+      $des['destination'] = 'invoices';
+      break;
+  }
+  $form_state['redirect'] = array('admin/commerce/orders/' . $form_state['commerce_order']->order_id . '/delete', array('query' => $des));
+}
+
+/**
+ * Hepler function to get profiles list.
+ */
+function erpal_commerce_get_profiles($param) {
+  $profiles = array('' => t('- None -'));
+  $view = views_get_view('erpal_customer_profile');
+  $view->set_display('dfv_1');
+  $view->set_arguments(array($param));
+  $view->pre_execute();
+  $view->execute();
+
+  if (isset($view->result)) {
+    foreach ($view->result as $profile) {
+      $str = array();
+      foreach ($profile as $field) {
+        $str[] = $field;
+      }
+      $profiles[$profile->profile_id] = implode(' - ', $str);
+    }
+  }
+
+  return $profiles;
+}
+
+/**
+ * Hepler function to set default profile if it's only one available.
+ */
+function erpal_commerce_set_default_profile($options) {
+  $default = array_keys($options);
+  $default = count($options) == 2 ? array($default[1]) : array($default[0]);
+
+  return $default;
+}
+
+/**
+ * Calculate line item amount.
+ *
+ * @param object $line_item
+ *   The line item object which should be refreshed.
+ */
+function erpal_commerce_line_item_refresh($line_item) {
+  $line_item_wrapper = entity_metadata_wrapper('commerce_line_item', $line_item);
+
+  // Knowing it exists, clone the line item now.
+  $cloned_line_item = clone($line_item_wrapper->value());
+  $current_line_item_wrapper = entity_metadata_wrapper('commerce_line_item', $cloned_line_item);
+
+  // If the line item is a product line item...
+  if (in_array($cloned_line_item->type, commerce_product_line_item_types())) {
+    $product = $line_item_wrapper->commerce_product->value();
+
+    if (!empty($product)) {
+      $total['amount'] = $line_item_wrapper->commerce_unit_price->amount->value();
+      $total['currency_code'] = $line_item_wrapper->commerce_unit_price->currency_code->value();
+
+      // If this price has already been calculated, reset it to its original
+      // value so it can be recalculated afresh in the current context.
+      if (isset($product->commerce_price[LANGUAGE_NONE][0]['original'])) {
+        $original = $product->commerce_price[LANGUAGE_NONE][0]['original'];
+        foreach ($product->commerce_price as $langcode => $value) {
+          $product->commerce_price[$langcode] = array(0 => $original);
+        }
+      }
+
+      // Repopulate the line item array with the default values for the product
+      // as though it had not been added to the cart yet, but preserve the
+      // current quantity and display URI information.
+      commerce_product_line_item_populate($cloned_line_item, $product);
+  
+      // If price in line item was overide just apply it to all price components.
+      erpal_payment_modality_price_components($total, $cloned_line_item, 'commerce_unit_price');
+      $current_line_item_wrapper->commerce_unit_price = $total;
+
+    }
+
+    // Process the unit price through Rules so it reflects the user's actual
+    // current purchase price.
+    rules_invoke_event('commerce_product_calculate_sell_price', $cloned_line_item);
+  }
+
+  // Compare the refreshed unit price to the original unit price looking for
+  // differences in the amount, currency code, or price components.
+  $data = $line_item_wrapper->commerce_unit_price->data->value() + array('components' => array());
+  $current_data = (array) $current_line_item_wrapper->commerce_unit_price->data->value() + array('components' => array());
+
+  if ($line_item_wrapper->commerce_unit_price->amount->value() != $current_line_item_wrapper->commerce_unit_price->amount->value() ||
+    $line_item_wrapper->commerce_unit_price->currency_code->value() != $current_line_item_wrapper->commerce_unit_price->currency_code->value() ||
+    $data['components'] != $current_data['components']) {
+    // Adjust the unit price accordingly if necessary.
+    $line_item_wrapper->commerce_unit_price->amount = $current_line_item_wrapper->commerce_unit_price->amount->value();
+    $line_item_wrapper->commerce_unit_price->currency_code = $current_line_item_wrapper->commerce_unit_price->currency_code->value();
+
+    // Only migrate the price components in the data to preserve other data.
+    $data['components'] = $current_data['components'];
+    $line_item_wrapper->commerce_unit_price->data = $data;
+  }
+  erpal_commerce_line_item_culculate_total($line_item);
+}
+
+
+/**
+ * Calculate line item amount.
+ *
+ * @param object $line_item
+ *   The line item object which should be refreshed.
+ */
+function erpal_commerce_line_item_culculate_total($line_item) {
+  $wrapper = entity_metadata_wrapper('commerce_line_item', $line_item);
+
+  // Set the timestamp fields.
+  if (empty($line_item->line_item_id) && empty($line_item->created)) {
+    $line_item->created = REQUEST_TIME;
+  }
+  else {
+    // Otherwise if the line item is not new but comes from an entity_create()
+    // or similar function call that initializes the created timestamp to an
+    // empty string, unset it to prevent destroying existing data in that
+    // property on update.
+    if ($line_item->created === '') {
+      unset($line_item->created);
+    }
+  }
+
+  $line_item->changed = REQUEST_TIME;
+
+  // Update the total of the line item based on the quantity and unit price.
+  $unit_price = commerce_price_wrapper_value($wrapper, 'commerce_unit_price', TRUE);
+
+  $wrapper->commerce_total->amount = $line_item->quantity * $unit_price['amount'];
+  $wrapper->commerce_total->currency_code = $unit_price['currency_code'];
+
+  // Add the components multiplied by the quantity to the data array.
+  if (empty($unit_price['data']['components'])) {
+    $unit_price['data']['components'] = array();
+  }
+  else {
+    foreach ($unit_price['data']['components'] as $key => &$component) {
+      $component['price']['amount'] *= $line_item->quantity;
+    }
+  }
+  // Set the updated data array to the total price.
+  $wrapper->commerce_total->data = $unit_price['data'];
+}
+
+/**
+ * Entity API property getter callback.
+ */
+function erpal_commerce_entity_get_properties($data, array $options, $name, $type, $info) {
+  $settings = variable_get('erpal_vendor_settings', array());
+
+  if ($name == 'vendor' && !empty($settings['vendor_id'])) {
+    return crm_core_contact_load($settings['vendor_id']);
+  }
+  elseif ($name == 'vendor_address' && !empty($settings['customer_profile_id'])) {
+    return commerce_customer_profile_load($settings['customer_profile_id']);
+  }
+
+  return '';
+}

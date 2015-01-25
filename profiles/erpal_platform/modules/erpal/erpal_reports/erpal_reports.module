@@ -1,0 +1,252 @@
+<?php
+
+/**
+ * @file
+ * Provide main functionality for ERPAL Report module.
+ */
+
+/**
+ * Define date formats for reports.
+ */
+define('ERPAL_REPORTS_DATE_TYPE_YEAR', 'year');
+define('ERPAL_REPORTS_DATE_FORMAT_YEAR', 'Y');
+
+define('ERPAL_REPORTS_DATE_TYPE_MONTH', 'month');
+define('ERPAL_REPORTS_DATE_FORMAT_MONTH', 'Y-m');
+
+
+/**
+ * Implements hook_permission().
+ */
+function erpal_reports_permission() {
+  $permissions = array(
+    'view erpal reports' => array(
+      'title' => t('View ERPAL Reports'),
+    ),
+  );
+
+  return $permissions;
+}
+
+/**
+ * Implements hook_commerce_order_type_insert().
+ */
+function erpal_reports_erpal_output_type_insert($type) {
+  $types = array('expense', 'revenue');
+  if (in_array($type->type, $types)) {
+
+    // Add default fields for 'expense', 'revenue' output bundles.
+    // Include the fields file.
+    module_load_include('inc', 'erpal_reports', 'erpal_reports.fields');
+    $fields = erpal_reports_default_fields();
+    erpal_core_add_fields($fields['fields'], 'field');
+    erpal_core_add_fields($fields['instances'], 'instance');
+  }
+}
+
+/**
+ * Search output from line item.
+ */
+function erpal_reports_search_output($line_item) {
+  $query = new EntityFieldQuery();
+  $result = $query
+    ->entityCondition('entity_type', 'erpal_output')
+    ->entityCondition('bundle', array('expense', 'revenue'), 'IN')
+    ->fieldCondition('field_output_money_refers', 'target_id', $line_item->line_item_id)
+    ->execute();
+
+  if (!empty($result['erpal_output'])) {
+    $keys = array_keys($result['erpal_output']);
+    return erpal_output_load(reset($keys));
+  }
+  return array();
+}
+
+/**
+ * Search line item from line item.
+ */
+function erpal_reports_search_line_item($output) {
+  $refers = field_get_items('erpal_output', $output, 'field_output_money_refers');
+  if ($refers && $refers[0]['target_id']) {
+    return commerce_line_item_load($refers[0]['target_id']);
+  }
+  return array();
+}
+
+/**
+ * Check if line item not billed.
+ */
+function erpal_reports_is_billed($line_item) {
+  $order = field_get_items('commerce_line_item', $line_item, 'field_line_item_order');
+  if ($order[0]['target_id'] == $line_item->order_id) {
+    return FALSE;
+  }
+  return TRUE;
+}
+
+/**
+ * Implements hook_output_budget_find().
+ */
+function erpal_reports_output_budget_find($output) {
+  $output_wrapper = entity_metadata_wrapper('erpal_output', $output);
+  $budgets = array();
+
+  // Check if this output have refers to entity with money.
+  if (isset($output->field_output_money_refers) && $output_wrapper->saldo->raw() > 0 && empty($output_wrapper->field_output_budget[0])) {
+
+    $line_item = $output_wrapper->field_output_money_refers->raw();
+    if (!empty($line_item) && isset($output_wrapper->field_output_money_refers->field_line_item_order)) {
+
+      $order = $output_wrapper->field_output_money_refers->field_line_item_order->raw();
+      if (!empty($order) && isset($output_wrapper->field_output_money_refers->field_line_item_order->field_quote)) {
+
+        $order_wrapper = $output_wrapper->field_output_money_refers->field_line_item_order;
+        $quote = $order_wrapper->field_quote->raw();
+        if (!empty($quote) && isset($order_wrapper->field_quote->field_sales_process)) {
+
+          $sales_process = $order_wrapper->field_quote->field_sales_process->raw();
+          if (!empty($sales_process) && isset($order_wrapper->field_quote->field_sales_process->field_activity_sales_forecast)) {
+
+            $budget_id = $order_wrapper->field_quote->field_sales_process->field_activity_sales_forecast->raw();
+            if (!empty($budget_id)) {
+              $budgets[] = $budget_id;
+            }
+          }
+        }
+      }
+    }
+  }
+  return $budgets;
+}
+
+/**
+ * Implements hook_budget_check_exists().
+ */
+function erpal_reports_budget_check_exists($parameter, $resource) {
+  $type = $parameter->type();
+  $entity = $parameter->value();
+
+  switch ($type) {
+    case 'crm_core_activity':
+      $field_name = 'field_activity_sales_forecast';
+      break;
+
+  }
+
+  if (!empty($field_name)) {
+    $budget = field_get_items($type, $entity, $field_name);
+    if ($budget && !empty($budget[0]['target_id'])) {
+      $budget = erpal_budget_load($budget[0]['target_id']);
+      $resource = field_get_items($type, $entity, 'field_resource');
+      if ($resource && !empty($resource[0]['target_id'])) {
+        $language = field_language('erpal_budget', $budget, 'field_resource');
+        $budget->field_resource[$language][0]['target_id'] = $resource[0]['target_id'];
+        erpal_budget_save($budget);
+      }
+    }
+  }
+
+}
+
+/**
+ * Implements hook_field_formatter_info().
+ *
+ * Defines a formatter view for the commerce_price field type that works for the commerce_reports_visualization handler.
+ */
+function erpal_reports_field_formatter_info() {
+  return array(
+    'erpal_reports_decimal' => array(
+      'label' => t('Decimal amount'),
+      'field types' => array('commerce_price'),
+      'settings' => array(
+        'calculation' => FALSE,
+      ),
+    ),
+  );
+}
+
+/**
+ * Implements hook_field_formatter_view().
+ *
+ * Executes the formatter view for the commerce price field type.
+ */
+function erpal_reports_field_formatter_view($entity_type, $entity, $field, $instance, $langcode, $items, $display) {
+  $default_currency = commerce_default_currency();
+  $element = array();
+
+  foreach ($items as $delta => $item) {
+    if (is_null($item['amount'])) {
+      continue;
+    }
+
+    switch ($display['type']) {
+      case 'erpal_reports_decimal':
+        if ($item['currency_code'] != $default_currency) {
+          $amount = commerce_currency_convert($item['amount'], $item['currency_code'], $default_currency);
+        }
+        else {
+          $amount = $item['amount'];
+        }
+        $element[$delta] = array(
+          '#markup' => commerce_currency_amount_to_decimal($amount, $default_currency),
+        );
+        break;
+    }
+  }
+
+  return $element;
+}
+
+/**
+ * Implements hook_date_formats().
+ */
+function erpal_reports_date_formats() {
+  return array(
+    // Defines a Year format.
+    array(
+      'type' => ERPAL_REPORTS_DATE_TYPE_YEAR,
+      'format' => ERPAL_REPORTS_DATE_FORMAT_YEAR,
+      'locales' => array(),
+    ),
+    // Defines a Year-month format.
+    array(
+      'type' => ERPAL_REPORTS_DATE_TYPE_MONTH,
+      'format' => ERPAL_REPORTS_DATE_FORMAT_MONTH,
+      'locales' => array(),
+    ),
+  );
+}
+
+/**
+ * Implements hook_date_format_types().
+ */
+function erpal_reports_date_format_types() {
+  return array(
+    ERPAL_REPORTS_DATE_TYPE_YEAR => t('Year'),
+    ERPAL_REPORTS_DATE_TYPE_MONTH => t('Month'),
+  );
+}
+
+/**
+ * Implements hook_views_api().
+ */
+function erpal_reports_views_api() {
+  return array(
+    'api' => 3,
+    'path' => drupal_get_path('module', 'erpal_reports') . '/views',
+  );
+}
+
+/**
+ * Implements hook_ctools_plugin_api().
+ *
+ * We provide our default pages for page_manager.
+ */
+function erpal_reports_ctools_plugin_api($module = NULL, $api = NULL) {
+  if ($module == 'page_manager' && $api == 'pages_default') {
+    return array(
+      'version' => 1,
+      'path' => drupal_get_path('module', 'erpal_reports') . '/pages',
+    );
+  }
+}

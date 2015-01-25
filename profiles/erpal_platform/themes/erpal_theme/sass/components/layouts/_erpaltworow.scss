@@ -1,0 +1,25 @@
+.erpaltworow-header {
+  margin-bottom: $extended-spacing;
+
+  .field {
+    display: table-cell;
+    vertical-align: top;
+
+    + .field {
+      padding-left: $inner-spacing;
+    }
+  }
+
+  // @TODO special dependency - better way to resolve this? or move to page-partial?
+  .field-name-field-budget-available {
+    width: 100%;
+  }
+
+  .field-name-field-budget-reference-view a {
+    white-space: nowrap;
+  }
+
+  .label-above {
+    font-weight: bold;
+  }
+}

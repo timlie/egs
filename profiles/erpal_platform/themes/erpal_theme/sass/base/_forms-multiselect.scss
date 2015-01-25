@@ -1,0 +1,183 @@
+// custom dropdown / select-elements
+// "button." needed to overwrite specification
+// select,
+button.ui-multiselect {
+  span {
+    font-size: $font-size-form;
+  }
+
+  // dropdown-indicator
+  .ui-icon {
+    @include single-transition(background-color, $transition-duration-default);
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 2em;
+    height: auto;
+    text-align: center;
+    text-indent: 0;
+    background: $input-border-color-default;
+    color: $color-copy;
+
+    &:after {
+      @include font-awesome-icon(caret-down);
+      position: relative;
+      top: 3px;
+    }
+  }
+
+  &.ui-state-default {
+    @extend %input;
+    position: relative;
+    overflow: hidden;
+    padding-top: 1px;
+    height: 28px;
+    cursor: pointer;
+  }
+
+  &.ui-state-active {
+    border-color: $input-border-color-hover;
+    font-weight: normal;
+
+    .ui-icon {
+      background-color: $input-border-color-hover;
+    }
+  }
+}
+
+// custom select options-display
+.ui-multiselect-menu {
+  @include single-box-shadow(0, 1px, 5px, 0, rgba(#000, .3));
+  margin-top: -1px;
+  padding: 0;
+  border-color: $input-border-color-hover;
+  border-top-width: 0;
+  border-radius: 0; // jQ-ui overwrite
+
+  // filter-box
+  .ui-multiselect-hasfilter {
+    margin: 0;
+    padding-left: 7px;
+    border: solid $input-border-color-hover;
+    border-width: 1px 0;
+    background: $color-mercury;
+    border-radius: 0; // jQ-ui overwrite
+
+    // multiselect helper
+    ul {
+      display: block;
+      position: static;
+      clear: both;
+    }
+
+    a {
+      color: $color-copy;
+      text-decoration: none;
+      opacity: .5;
+
+      &:hover {
+        opacity: 1;
+      }
+    }
+
+    .ui-icon {
+      position: relative;
+      margin-right: .25em;
+      width: auto;
+      height: 1em;
+      line-height: 1em;
+      background: transparent;
+      text-indent: 0;
+      white-space: nowrap;
+
+      &:before {
+        color: inherit;
+      }
+    }
+
+    .ui-multiselect-all,
+    .ui-multiselect-none {
+      display: inline-block;
+      font-size: $font-size-small;
+      font-weight: normal;
+    }
+  }
+
+  // filter input
+  .ui-multiselect-filter {
+    font-size: $font-size-small;
+    font-weight: normal;
+
+    input {
+      @extend %input-border-default;
+      height: auto;
+      font-size: inherit;
+    }
+  }
+
+  // helper check-icon
+  .ui-multiselect-all .ui-icon:before {
+    @include font-awesome-icon(check);
+  }
+
+  // helper cross-icon
+  .ui-multiselect-none .ui-icon:before {
+    @include font-awesome-icon(times);
+  }
+
+  // helper close-icon
+  .ui-multiselect-close .ui-icon {
+    position: absolute;
+    top: 6px;
+    right: -1px;
+    margin-right: 5px;
+    font-size: $font-size-form;
+
+    &:before {
+      @include font-awesome-icon(times);
+    }
+  }
+
+  // options list
+  .ui-multiselect-checkboxes {
+    // list-items
+    li {
+      padding: 0;
+
+      + li {
+        border-top: 1px dotted $color-cloud;
+      }
+    }
+
+    label {
+      border-width: 0;
+      margin: 0;
+      cursor: pointer;
+      border-radius: 0; // jQ-ui overwrite
+    }
+
+    // checkboxes
+    [type="checkbox"] {
+      display: block;
+      position: relative;
+      float: left;
+      top: -1px;
+      margin: {
+        left: 5px;
+        right: 5px;
+      }
+      outline: none;
+    }
+  }
+
+  // active list-item
+  .ui-state-active {
+    background: $color-gallery; // jQ-ui overwrite
+  }
+
+  // hovered list-item
+  .ui-state-hover {
+    background: $color-bg-highlight; // jQ-ui overwrite
+  }
+}

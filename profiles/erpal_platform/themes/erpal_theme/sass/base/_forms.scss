@@ -1,0 +1,185 @@
+$form-icons: sprite-map("form_icons/*.png", $spacing: 20px);
+$form-icon-offset-x: 10px;
+$form-icon-offset-y: 9px;
+
+.form-actions {
+  margin-top: $extended-spacing;
+}
+
+/* --- button --- */
+[type="submit"],
+.form-actions > a,
+.form-actions button {
+  @include button-default();
+}
+
+#edit-submit,
+button[id*="save"] {
+  @include button-color($color-deep-sea);
+
+  &:before {
+    @include font-awesome-icon(check);
+  }
+}
+
+#edit-delete {
+  @include button-default($color-monza);
+
+  &:before {
+    @include font-awesome-icon(times);
+  }
+}
+
+#edit-cancel {
+  @include button-default($color-monza);
+
+  &:before {
+    @include font-awesome-icon(times);
+  }
+}
+
+/* --- input & textarea --- */
+textarea {
+  @extend %input;
+}
+
+[type="text"],
+[type="password"] {
+  @extend %input;
+
+  &.form-autocomplete {
+    .js & {
+      background-position: right 8px;
+    }
+
+    &.throbbing {
+      .js & {
+        background-position: right -13px;
+      }
+    }
+  }
+}
+
+.form-autocomplete {
+  background-position: right 7px;
+}
+
+/* --- radio & checkbox --- */
+[type="radio"],
+[type="checkbox"] {
+  &:checked + .field-label label.option {
+    // setting this before hover prevents the need to re-rewrite it
+    background-color: $color-alto;
+  }
+
+  + .field-label label.option {
+    @include transition-property(border-color, background-color);
+    @include transition-duration($transition-duration-default);
+    display: inline-block;
+    position: relative;
+    padding: 3px 10px 0 26px;
+    border: 1px solid $color-alto;
+    height: 28px;
+    line-height: 20px;
+    font-size: 13px;
+    cursor: pointer;
+    background: rgba($color-alto, .5) $form-icons no-repeat;
+
+    &:hover {
+      border-color: $color-border-highlight;
+      background-color: $color-bg-highlight;
+      z-index: 3;
+    }
+  }
+}
+
+[type="checkbox"] {
+  &:not(.vbo-select) {
+    display: none;
+  }
+
+  + .field-label label.option {
+    @include sprite-background-position($form-icons, checkbox_unchecked, $form-icon-offset-x, $form-icon-offset-y);
+  }
+
+  &:checked + .field-label label.option {
+    @include sprite-background-position($form-icons, checkbox_checked, $form-icon-offset-x, $form-icon-offset-y);
+  }
+}
+
+[type="radio"] {
+  display: none;
+
+  + .field-label label.option {
+    @include sprite-background-position($form-icons, radio_unchecked, $form-icon-offset-x, $form-icon-offset-y);
+  }
+
+  &:checked + .field-label label.option {
+    @include sprite-background-position($form-icons, radio_checked, $form-icon-offset-x, $form-icon-offset-y);
+  }
+}
+
+.form-checkboxes {
+  @extend %clearfix;
+
+  .form-type-checkbox {
+    float: left;
+
+    + .form-type-checkbox {
+      @include rem(margin-left, 2px);
+    }
+  }
+}
+
+.form-radios {
+  @extend %clearfix;
+
+  .form-type-radio {
+    float: left;
+
+    + .form-type-radio {
+      margin-left: -1px;
+    }
+  }
+
+  .description {
+    margin: {
+      left: 2px;
+      right: $ds;
+    }
+  }
+}
+
+/* --- labels --- */
+.form-item label {
+  @extend %label;
+}
+
+.field-label label {
+  display: inline-block;
+}
+
+// file upload
+.field-type-image {
+  display: inline-block; // prevent spreading over the whole width
+}
+
+
+/* --- fieldsets --- */
+fieldset.collapsible {
+  border: 1px solid $input-border-color-default;
+  margin-bottom: $ds;
+  padding: $ds;
+
+  .fieldset-wrapper {
+    margin-top: $ds;
+  }
+
+  .form-item {
+    margin-bottom: 0;
+
+    + .form-item {
+      margin-top: $ds;
+    }
+  }
+}

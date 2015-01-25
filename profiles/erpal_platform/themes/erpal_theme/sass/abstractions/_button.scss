@@ -1,0 +1,191 @@
+/**
+  default button color
+  @group button
+  */
+$button-bg-color-default: #ccc !default;
+/**
+  value to darken button on hover
+  @group button
+  @link http://sass-lang.com/documentation/Sass/Script/Functions.html#darken-instance_method
+  */
+$button-bg-hover-darken: 5 !default;
+
+/**
+  sets button-background-color only. if hover is false, bg-color will not be overwritten;
+  if a color is passed the it will be set without manipulation.
+  @group button
+  @param {Color} $bg-color ($button-bg-color-default) - background-color
+  @param {Boolean|Color} $hover (true) - background-color
+  @param {Int} $hover-darken ($button-bg-hover-darken) - darken-value for button-hover
+  @requires $button-bg-color-default
+  @requires $button-bg-hover-darken
+  @example
+  .foo {
+    @include button-color(#f00);
+    // background-color: #f00;
+    // &:hover {
+    //   background-color: #d9d9d9;
+    // }
+  }
+  @example
+  .foo {
+    @include button-color(#f00, false);
+    // background-color: #f00;
+  }
+  @example
+  .foo[type="disabled"] {
+    @include button-color(#f00, #f00);
+    // background-color: #f00;
+    // &:hover {
+    //   background-color: #0f0;
+    // }
+  }
+  */
+@mixin button-color($bg-color: $button-bg-color-default, $hover: true, $hover-darken: $button-bg-hover-darken) {
+  background-color: $bg-color;
+
+  @if $hover == true {
+    &:hover {
+      background-color: lighten($bg-color, 5);
+    }
+  } @else {
+    @if $hover != false {
+      &:hover {
+        background-color: $bg-color;
+      }
+    }
+  }
+}
+
+/**
+  sets button-basic-settings and background-color
+  @group button
+  @param {Color} $bg-color ($button-bg-color-default) - background-color
+  @requires %button-default
+  @requires {mixin} button-color
+  @requires $button-bg-color-default
+  */
+@mixin button-default($bg-color: $button-bg-color-default) {
+  @extend %button-default;
+  @include button-color($bg-color);
+}
+
+/**
+  sets button-basic-settings and background-color
+  @group button
+  @param {Color} $bg-color ($button-bg-color-default) - background-color
+  @requires %button-small
+  @requires {mixin} button-color
+  @requires $button-bg-color-default
+  */
+@mixin button-small($bg-color: $button-bg-color-default) {
+  @extend %button-small;
+  @include button-color($bg-color);
+}
+
+/**
+  reduces the a button to only display an icon
+  @group button
+  @param {String} $icon - icon trivial name
+  @requires %button-icon-only-default
+  */
+@mixin button-icon-only($icon) {
+  @extend %button-icon-only-default;
+
+  &:before {
+    @include font-awesome-icon($icon)
+  }
+}
+
+/**
+  basic button
+  @group button
+  */
+%button-basic {
+  border: none;
+  display: inline-block;
+  white-space: nowrap;
+  text-decoration: none;
+  color: #fff;
+  margin-right: 1em;
+  font-family: $font-family-button;
+  font-size: 1em;
+
+  &:active {
+    position: relative;
+    top: 1px;
+  }
+
+  &:focus {
+    outline: 0;
+  }
+
+  &:before {
+    float: left;
+    text-align: center;
+    pointer-events: none;
+  }
+}
+
+/**
+  default button setup
+  @group button
+  @requires %button-basic
+  */
+%button-default {
+  @extend %button-basic;
+  padding: 0 1em;
+  font-weight: bold;
+  line-height: 2em;
+
+  &:before {
+    background: rgba(#000, .3);
+    margin: 0 .5em 0 -1em;
+    padding: 0 .2em;
+    width: 2em;
+  }
+}
+
+/**
+  small button setup
+  @group button
+  @requires %button-basic
+  @requires {mixin} font-size
+  */
+%button-small {
+  @extend %button-basic;
+  font-size: $font-size-small-button;
+  padding: 2px 7px 2px 5px;
+
+  &:before {
+    background: none;
+    font-size: $font-size-small-button;
+    width: 1em;
+    position: relative;
+    top: 1px;
+  }
+}
+
+/**
+  button width no text, just icon
+  @group button
+  */
+%button-icon-only-default {
+  padding: 0;
+  text-indent: -9999em;
+  width: 2em;
+
+  &:before {
+    margin: 0;
+    text-indent: 0;
+  }
+}
+
+/**
+  button width no text, just icon and smaller
+  @group button
+  @requires $font-size-small-button
+  */
+%button-icon-only-small {
+  font-size: $font-size-small-button;
+}

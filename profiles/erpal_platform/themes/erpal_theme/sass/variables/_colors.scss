@@ -1,0 +1,74 @@
+/* --- color definitions --- */
+/**
+ @group color
+ @link http://chir.ag/projects/name-that-color/
+ */
+$color-dove-gray: #737373;
+/** @group color */
+$color-cloud: #d0cecd;
+/**
+  also used for #ededed
+  @group color
+  */
+$color-gallery: #eee;
+/** @group color */
+$color-mercury: #e5e5e5;
+/** @group color */
+$color-silver-chalice: #b2b2b2;
+/** @group color */
+$color-alto: #d9d9d9;
+/** @group color */
+$color-dorado: #645c58;
+/** @group color */
+$color-wild-sand: #f6f6f6;
+/** @group color */
+$color-deep-sea: #00895d;
+/** @group color */
+$color-monza: #ca0513;
+/** @group color */
+$color-red-devil: #8d050a;
+/** @group color */
+$color-orient: #006487;
+/** @group color */
+$color-bondi-blue: #009fb7;
+/** @group color */
+$color-yellow-orange: #ffa63d;
+/** @group color */
+$color-outer-space: #2c3438;
+/** @group color */
+$color-gray: #8e8e8e;
+
+/* --- general use-cases --- */
+/** @group color */
+$color-bg-highlight: rgba($color-yellow-orange, .5);
+/** @group color */
+$color-border-highlight: $color-yellow-orange;
+
+/** @group color */
+$color-table-odd: $color-gallery;
+/** @group color */
+$color-table-even: $color-wild-sand;
+
+/** @group color */
+$color-button-delete: $color-monza;
+
+/** @group color */
+$color-button-action: $color-gray;
+
+/* --- typo colors --- */
+/**
+  default copy color
+  @group color
+  */
+$color-copy: #000;
+/**
+  default link color
+  @group color
+  */
+$color-link: $color-orient;
+
+/* --- border colors --- */
+/** @group color */
+$input-border-color-default: $color-alto;
+/** @group color */
+$input-border-color-hover: darken($input-border-color-default, 15);

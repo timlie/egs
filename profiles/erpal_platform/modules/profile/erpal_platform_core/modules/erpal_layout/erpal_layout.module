@@ -1,0 +1,70 @@
+<?php
+
+/**
+ * @file
+ * Code for the Erpal Layout.
+ */
+
+/**
+ * Implements hook_ctools_plugin_directory().
+ */
+function erpal_layout_ctools_plugin_directory($module, $plugin) {
+  if ($module == 'ctools') {
+    return 'plugins/' . $plugin;
+  }
+}
+
+/**
+ * Implements hook_ctools_plugin_api().
+ */
+function erpal_layout_ctools_plugin_api($module = NULL, $api = NULL) {
+  if ($module == "page_manager" && $api == "pages_default") {
+    return array("version" => "1");
+  }
+  if ($module == "panels" && $api == "layouts") {
+    return array("version" => "1");
+  }
+  if ($module == 'panels_mini' && $api == 'panels_default') {
+    return array('version' => 1);
+  }
+}
+
+
+/**
+ * Implements hook_image_default_styles().
+ */
+function erpal_layout_image_default_styles() {
+  $styles = array();
+
+  $styles['usermenu_profileimage'] = array(
+    'label' => 'Usermenu Profileimage',
+    'effects' => array(
+      array(
+        'name' => 'image_scale_and_crop',
+        'data' => array(
+          'width' => 30,
+          'height' => 30,
+          'upscale' => 1,
+        ),
+        'weight' => 0,
+      ),
+    ),
+  );
+
+  $styles['contact_image'] = array(
+    'label' => 'Contact Image',
+    'effects' => array(
+      array(
+        'name' => 'image_scale',
+        'data' => array(
+          'width' => 340,
+          'height' => 340,
+          'upscale' => 0,
+        ),
+        'weight' => 0,
+      ),
+    ),
+  );
+
+  return $styles;
+}

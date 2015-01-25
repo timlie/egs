@@ -1,0 +1,231 @@
+// buttons
+#homebox-buttons {
+  //only available selector
+  margin-bottom: $inner-spacing;
+
+  > a {
+    @include button-small($color-bondi-blue);
+    position: relative;
+    z-index: 2;
+
+    &:before {
+      @include font-awesome-icon(plus);
+      margin-right: 5px;
+    }
+  }
+
+  .homebox-msg,
+  form {
+    display: none;
+  }
+}
+
+// add options
+#homebox-add {
+  //only available selector
+  $spacing: 41px; // faking button in the same row
+
+  display: none;
+  position: relative;
+  margin: 0 - $spacing 0 $inner-spacing;
+  padding: $spacing $ds $ds;
+  background-color: $color-gallery;
+
+  ul {
+    margin: -15px 0 0;
+    padding: 0;
+    list-style-type: none;
+  }
+
+  li {
+    display: inline-block;
+    margin: {
+      top: 5px;
+      right: 5px;
+    }
+
+    &:last-child {
+      display: block;
+    }
+  }
+
+  a {
+    @include button-small($color-dove-gray);
+    margin: 0;
+
+    &:before {
+      @include font-awesome-icon(plus);
+      margin-right: 5px;
+    }
+  }
+
+  // reset button
+  .restore {
+    @include button-color($color-red-devil);
+    position: absolute;
+    right: 0;
+    top: 0;
+
+    &:before {
+      @include font-awesome-content(times);
+    }
+
+    &:active {
+      position: absolute; // needs to be reset due to button mixin
+    }
+  }
+}
+
+.homebox-column-wrapper {
+  $spacing: $inner-spacing / 2;
+  float: left;
+  padding-right: $spacing;
+
+  + .homebox-column-wrapper {
+    padding-left: $spacing;
+  }
+
+  &:last-child {
+    padding-right: 0;
+  }
+
+  &.column-count-1 {
+    padding: 0;
+  }
+}
+
+// column content - outer
+.portlet-content {
+  thead {
+    border-bottom: 1px solid $input-border-color-default;
+    background-color: #fff;
+
+    th {
+      font-weight: normal;
+    }
+  }
+
+  tbody tr {
+    @extend %row-stripe;
+
+    + tr {
+      border-top: 2px solid #fff;
+    }
+  }
+}
+
+.homebox-portlet {
+  + .homebox-portlet,
+  + .homebox-placeholder {
+    margin-top: $ds;
+  }
+
+  // @TODO views table reset
+  .portlet-content {
+    thead,
+    tr {
+      border: none;
+    }
+  }
+
+  // header
+  .portlet-header {
+    margin: 0; // headline reset
+    padding: 7px 9px;
+    cursor: move;
+    background-color: $input-border-color-default;
+    color: $color-copy;
+  }
+
+  .view-empty {
+    padding: 5px 9px;
+
+    p {
+      margin: 0;
+    }
+  }
+
+  .view-footer {
+    text-align: center;
+    padding: 5px 7px;
+    border-top: 1px solid $input-border-color-default;
+
+    > p {
+      margin: 0;
+    }
+  }
+
+  &.ui-sortable-helper {
+    @include single-box-shadow(0, 5px, 18px, 0, rgba(#000, .3));
+  }
+}
+
+// icons
+.portlet-icon {
+  @include single-transition(color, $transition-duration-default);
+  float: right;
+  margin-left: 5px;
+  font-size: 12px; // TODO
+  text-align: center;
+  background: none;
+  cursor: pointer;
+  color: rgba($color-copy, .3);
+  text-decoration: none;
+
+  &:before {
+    @extend %font-awesome;
+    position: relative;
+  }
+
+  &:hover {
+    color: $color-copy;
+  }
+
+  $portlet-icons: (
+    close: times,
+    minimize: compress,
+    maximize: expand,
+    plus: plus,
+    minus: minus
+  );
+
+  @each $class, $icon in $portlet-icons {
+    &.portlet-#{$class}:before {
+      @include font-awesome-content($icon);
+    }
+  }
+}
+
+// inner
+.homebox-portlet-inner {
+  border: 1px solid $input-border-color-default;
+  background-color: #fff;
+
+  h3 {
+    font-size: $font-size-copy;
+    font-weight: normal;
+  }
+}
+
+// placeholder for dragging
+.homebox-placeholder {
+  margin: 0;
+  padding: 0;
+  border: 5px dashed rgba($input-border-color-default, .5);
+
+  + .homebox-portlet {
+    margin-top: $ds;
+  }
+}
+
+// TODO tooltips
+.tipsy {
+  @extend %tooltip-inner;
+  margin-top: -9px;
+
+  &:before {
+    @extend %tooltip-arrow;
+    border-top-color: $tooltip-background-color;
+    content: '';
+  }
+}

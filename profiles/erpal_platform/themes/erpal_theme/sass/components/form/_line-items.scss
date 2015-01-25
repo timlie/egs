@@ -1,0 +1,61 @@
+/**
+  @access private
+  */
+$line-item-padding-right: 85px;
+
+.field-name-commerce-line-items {
+  @extend %form-buttons;
+
+  .fieldset-wrapper {
+    position: relative;
+    padding-right: $line-item-padding-right; // @TODO spacing for the delete-checkbox
+
+    .fieldset-wrapper {
+      padding: 0;
+    }
+
+    > div:not(.field-name-field-payment-modality) {
+      @extend %form-multi-table-content;
+    }
+
+    // @TODO temporary - should be replaced by a delete-button
+    div.form-type-checkbox {
+      // have to overload selector
+      position: absolute;
+      top: 15px;
+      right: 0;
+      margin-right: 0;
+    }
+  }
+
+  // @TODO date-field fix
+  .field-name-field-line-item-delivery-date {
+    legend {
+      @extend %legend-to-label;
+      font-size: $font-size-small;
+    }
+  }
+
+  .field-type-entityreference {
+    margin-bottom: 0;
+  }
+
+  // position adjustment for multiple currencies
+  .field-name-commerce-unit-price {
+    .commerce-price-full {
+      > div {
+        margin: 0;
+        white-space: normal;
+      }
+
+      button {
+        // @TODO: patch widget width config
+        top: -1px;
+        margin: {
+          left: -3px;
+          bottom: -1px; // compensate negative top for line break
+        }
+      }
+    }
+  }
+}

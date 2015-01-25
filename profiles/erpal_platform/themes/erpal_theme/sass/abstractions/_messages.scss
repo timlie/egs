@@ -1,0 +1,26 @@
+/**
+  setting the background-color and side-background-color for messages
+  @param {Color} $color - desired side-color and background-color (with opacity)
+  */
+@mixin message-color($color) {
+  background-color: rgba($color, .3);
+
+  &:before {
+    background-color: $color;
+  }
+}
+
+/**
+  mixin to set the individual background-`$color` and `$icon` for the messages
+  @param {Color} $color - desired side-color and background-color (with opacity)
+  @param {String} $icon - icon trivial name to be displayed
+  @requires {mixin} message-color
+  @requires {mixin} font-awesome-icon
+  */
+@mixin message($color, $icon) {
+  @include message-color($color);
+
+  &:after {
+    @include font-awesome-icon($icon);
+  }
+}

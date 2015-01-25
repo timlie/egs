@@ -1,0 +1,30 @@
+// this class will be added via js
+.iniframe {
+  background: none;
+}
+
+.ui-widget-overlay {
+  opacity: .7;
+}
+
+.ui-dialog {
+  z-index: 1000;
+  // @todo do this as jquery ui dialog settings, should be nicer
+  //  max-height: 80%;
+  //  overflow: scroll;
+  //  top: 80px !important;
+  //  width: auto !important; //breaks the positioning
+  padding: 0;
+  border-radius: 5px;
+}
+
+.ui-dialog-titlebar {
+  border: none;
+  border-bottom-right-radius: 0;
+  border-bottom-left-radius: 0;
+  background: rgba(#000, .1);
+
+  .ui-dialog-titlebar-close {
+    // @include button-icon-only(times); //TODO find out why its not working
+  }
+}

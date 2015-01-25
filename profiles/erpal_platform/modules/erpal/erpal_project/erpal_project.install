@@ -1,0 +1,40 @@
+<?php
+
+/**
+ * @file
+ * Install, update, and uninstall functions for the ERPAL PM module.
+ */
+
+/**
+ * Implements hook_uninstall().
+ */
+function erpal_project_uninstall() {
+  $additional_params = array('include_inactive' => TRUE);
+  $types = array(
+    'erpal_task',
+    'erpal_project',
+  );
+
+  foreach ($types as $type) {
+    $instances = field_read_instances(array('entity_type' => $type), $additional_params);
+    foreach ($instances as $instance) {
+      field_delete_instance($instance);
+    }
+  }
+}
+
+/**
+ * Implements hook_install().
+ */
+function erpal_project_install() {
+  $t = get_t();
+
+  // Create Acceptance output type.
+  $output = entity_create('erpal_output_type', array(
+    'type' => 'acceptance',
+    'label' => $t('Acceptance'),
+    'description' => $t('Acceptance type output.'),
+  ));
+  variable_set('output_acceptance', 'money');
+  erpal_output_type_save($output);
+}

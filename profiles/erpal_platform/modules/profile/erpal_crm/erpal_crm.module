@@ -1,0 +1,219 @@
+<?php
+
+/**
+ * @file
+ * Contains hook implementations for ERPAL CRM module.
+ */
+
+/**
+ * Implements hook_module_implements_alter().
+ */
+function erpal_crm_module_implements_alter(&$implementations, $hook) {
+
+  // Ensure that we execute our implementation of hook
+  // crm_core_activity_type_insert() after the CRM Core Activity module did it.
+  if ($hook == 'crm_core_activity_type_insert') {
+    $group = $implementations['erpal_crm'];
+    unset($implementations['erpal_crm']);
+    $implementations['erpal_crm'] = $group;
+  }
+}
+
+/**
+ * Implements hook_entity_info_alter().
+ */
+function erpal_crm_entity_info_alter(&$entities_info) {
+  if (!empty($entities_info['relation'])) {
+    $entities_info['relation']['inline entity form'] = array(
+      'controller' => 'RelationInlineEntityFormController',
+    );
+  }
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_insert().
+ */
+function erpal_crm_crm_core_activity_type_insert($activity_type) {
+  // Drop fields that comes from CRM Core Activity module, but we don't need
+  // them at all.
+  _erpal_crm_activity_type_drop_unused_fields($activity_type);
+
+  // Add our fields to each activity bundle.
+  _erpal_crm_activity_type_add_default_fields($activity_type);
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_insert().
+ */
+function erpal_crm_crm_core_contact_type_insert($contact_type) {
+  // Add our fields to each contact bundle.
+  _erpal_crm_contact_type_add_default_fields($contact_type);
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_insert().
+ */
+function erpal_crm_erpal_budget_type_insert($budget_type) {
+  // Add our fields to "sales forecast" bundle of erpal_budget entity.
+  if ($budget_type->type == 'sales_forecast') {
+    _erpal_crm_erpal_budget_type_sales_forecast_add_default_fields();
+  }
+}
+
+/**
+ * Drop default fields that comes from CRM Core Activity module.
+ */
+function _erpal_crm_activity_type_drop_unused_fields() {
+
+  // Drop date field. We don't need it, because we have our own date field.
+  field_delete_field('field_activity_date');
+}
+
+/**
+ * Add our custom fields to every new bundle of activity entity.
+ *
+ * @param mixed $activity_type
+ *   Bundle of activity entity that was recently created.
+ */
+function _erpal_crm_activity_type_add_default_fields($activity_type) {
+  $type = is_object($activity_type) ? $activity_type->type : $activity_type;
+
+  // Include file which contains default field and field instances.
+  module_load_include('fields.inc', 'erpal_crm');
+
+  // Create fields (if not exists) for an activity entity type.
+  $fields = _erpal_crm_activity_type_common_fields();
+
+  // Sales process has different bunch of fields than other activity bundles.
+  if ($type == 'sales_process') {
+    $fields += _erpal_crm_activity_type_sales_process_fields();
+  }
+  else {
+    $fields += _erpal_crm_activity_type_default_fields();
+  }
+
+  // Create field bases, if not exists.
+  erpal_core_add_fields($fields, 'field');
+
+  // Add field instances for new activity bundle.
+  $instances = _erpal_crm_activity_type_common_field_instances($type);
+
+  // Sales process has different bunch of fields than other activity bundles.
+  if ($type == 'sales_process') {
+    $instances += _erpal_crm_activity_type_sales_process_field_instances($type);
+  }
+  else {
+    $instances += _erpal_crm_activity_type_default_field_instances($type);
+  }
+
+  // Add field instances to a recently created activity bundle.
+  erpal_core_add_fields($instances, 'instance');
+
+  // Small hack: since CRM Core Activity module provides its own default field
+  // instances, we need to re-save it to add there our changes.
+  $field_instance = field_info_instance('crm_core_activity', 'field_activity_participants', $type);
+  if (!empty($field_instance['display'])) {
+    $field_instance['display']['default'] = array(
+      'label' => 'above',
+      'settings' => array(),
+      'type' => 'hidden',
+    );
+    field_update_instance($field_instance);
+  }
+}
+
+/**
+ * Add our custom fields to every new bundle of contact entity.
+ *
+ * @param mixed $contact_type
+ *   Bundle of contact entity that was recently created.
+ */
+function _erpal_crm_contact_type_add_default_fields($contact_type) {
+  $type = is_object($contact_type) ? $contact_type->type : $contact_type;
+
+  // Include file which contains default field and field instances.
+  module_load_include('fields.inc', 'erpal_crm');
+
+  // Create field bases, if not exists.
+  $field_bases = _erpal_crm_contact_type_default_fields();
+  erpal_core_add_fields($field_bases, 'field');
+
+  // Add field instances to a recently created activity bundle.
+  $field_instances = _erpal_crm_contact_type_default_instances($type);
+  erpal_core_add_fields($field_instances, 'instance');
+
+  // Since contact bundles contains a field collections in our world, we
+  // need to add a field instances to a field collection entity bundles.
+  foreach ($field_bases as $field_base) {
+    if ($field_base['type'] == 'field_collection') {
+      $field_instances = _erpal_crm_contact_type_field_collection_instances($field_base['field_name']);
+      erpal_core_add_fields($field_instances, 'instance');
+    }
+  }
+}
+
+/**
+ * Add our custom fields to a sales forecast bundle of erpal_budget entity.
+ */
+function _erpal_crm_erpal_budget_type_sales_forecast_add_default_fields() {
+
+  // Include file which contains default field and field instances.
+  module_load_include('fields.inc', 'erpal_crm');
+
+  // Create field bases, if not exists.
+  $field_bases = _erpal_crm_erpal_budget_type_sales_forecast_default_fields();
+  erpal_core_add_fields($field_bases, 'field');
+
+  // Add field instances to a recently created erpal_budget bundle.
+  $field_instances = _erpal_crm_erpal_budget_type_sales_forecast_default_instances();
+  erpal_core_add_fields($field_instances, 'instance');
+}
+
+/**
+ * Implements hook_references_dialog_entity_admin_paths().
+ */
+function erpal_crm_references_dialog_entity_admin_paths() {
+  return array(
+    'crm_core_contact' => array(
+      'add' => 'crm-core/contact/add/[bundle]',
+      'edit' => 'crm-core/contact/[entity_id]/edit',
+    ),
+    'crm_core_activity' => array(
+      'add' => 'crm-core/activity/add/[bundle]',
+      'edit' => 'crm-core/activity/[entity_id]/edit',
+    ),
+  );
+}
+
+/**
+ * Implements hook_flush_caches().
+ */
+function erpal_crm_flush_caches() {
+  // Change field 'field_activity_participants' widget to
+  // 'entityreference_autocomplete' and unlock field.
+  $contact_types = crm_core_activity_types();
+  foreach ($contact_types as $contact_type) {
+    $info_instance = field_info_instance('crm_core_activity', 'field_activity_participants', $contact_type->type);
+    if (!empty($info_instance) && !isset($info_instance['widget']['settings']['references_dialog_add'])) {
+      $info_instance['widget']['type'] = 'entityreference_autocomplete';
+      $info_instance['widget']['settings']['references_dialog_add'] = 1;
+      $info_instance['widget']['settings']['references_dialog_edit'] = 1;
+      $info_instance['widget']['settings']['references_dialog_search'] = 1;
+      $info_instance['widget']['settings']['references_dialog_search_view'] = '';
+      field_update_instance($info_instance);
+    }
+  }
+
+  $info_field = field_info_field('field_activity_participants');
+  if (!empty($info_field) && $info_field['locked']) {
+    $info_field['locked'] = FALSE;
+    field_update_field($info_field);
+  }
+}
+
+/**
+ * Wraps crm_core_contact_type_get_name() for the Entity module.
+ */
+function erpal_crm_core_contact_type_options_list() {
+  return crm_core_contact_type_get_name();
+}

@@ -1,0 +1,67 @@
+#tabs {
+  height: 29px;
+}
+
+.tabs,
+.ui-tabs-nav {
+  display: inline-block;
+  margin: 0;
+  border: none;
+
+  &.tabs--primary {
+    float: right;
+  }
+
+  li {
+    margin-right: 2px;
+
+    &:focus {
+      outline: none;
+    }
+
+    &.active,
+    &:hover,
+    &.ui-state-active {
+      border: none;
+      background: 0;
+
+      a {
+        background: #FFF;
+        border-bottom: 1px solid #FFF;
+        color: $color-copy;
+
+        &:hover {
+          text-decoration: none;
+        }
+
+        &:focus {
+          outline: none;
+        }
+      }
+    }
+  }
+
+  a {
+    padding: .3em .8em;
+    border-bottom: 1px solid $color-silver-chalice;
+    border-top-left-radius: 3px;
+    border-top-right-radius: 3px;
+    background: $color-cloud;
+    color: rgba(#000, .5);
+
+    &.active {
+      border-bottom: 1px solid #FFF;
+      background: #FFF;
+    }
+  }
+}
+
+//clean up some jq-ui stuff
+.pane-page-content .ui-tabs {
+  padding: 0;
+  border: 0;
+
+  .ui-tabs-panel {
+    padding: 0;
+  }
+}

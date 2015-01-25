@@ -1,0 +1,100 @@
+<?php
+
+/**
+ * @file
+ * Contains hook definitions and main entry point for ERPAL platform module.
+ */
+
+/**
+ * Implements hook_menu().
+ */
+function erpal_platform_core_menu() {
+  $items = array();
+
+  $items['admin/erpal/settings/global'] = array(
+    'title' => 'Global Settings',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('erpal_platform_core_settings_form'),
+    'access arguments' => array('access administration pages'),
+    'type' => MENU_NORMAL_ITEM,
+    'file' => 'erpal_platform_core.admin.inc',
+  );
+
+  return $items;
+}
+
+/**
+ * Implements hook_homebox().
+ */
+function erpal_platform_core_homebox() {
+  module_load_include('inc', 'erpal_platform_core', 'includes/homebox.default');
+  return _erpal_platform_core_homebox_defaults();
+}
+
+/**
+ * Implements hook_permission().
+ */
+function erpal_platform_core_permission() {
+  return array(
+    'view erpal debug output' => array(
+      'title' => t('View ERPAL Platform debug info'),
+      'description' => t('Provides access to debug data from ERPAL Platform modules.'),
+    ),
+  );
+}
+
+/**
+ * Implements hook_entity_insert().
+ */
+function erpal_platform_core_entity_insert($entity, $type) {
+  // Show debug message when entity has been created.
+  $settings = variable_get('erpal_platform_core_messages', array());
+  if (!drupal_installation_attempted() && user_access('view erpal debug output') && (!isset($settings[$type]) || !empty($settings[$type]))) {
+    $info = entity_get_info($type);
+    $url = entity_uri($type, $entity);
+    $label = entity_label($type, $entity);
+    if (!empty($url['path']) && !empty($label) && !empty($info['bundle keys']) && !empty($entity->{$info['bundle keys']['bundle']})) {
+      $bundle = $entity->{$info['bundle keys']['bundle']};
+      $bundle_label = $info['bundles'][$bundle]['label'];
+
+      drupal_set_message(t('@type has been created (<a href="@url">@title</a>).', array('@url' => url($url['path']), '@type' => $bundle_label, '@title' => $label)));
+    }
+  }
+}
+
+/**
+ * Implements hook_views_api().
+ *
+ * This one is used as the base to reduce errors when updating.
+ */
+function erpal_platform_core_views_api() {
+  return array(
+    'api' => 3,
+  );
+}
+
+/**
+ * Implements hook_theme().
+ */
+function erpal_platform_core_theme($existing, $type, $theme, $path) {
+  return array(
+    'erpal_entity_actions' => array(
+      'variables' => array(
+        'actions' => array(),
+      ),
+      'template' => 'erpal_entity_actions',
+      'path' => $path . '/templates',
+    ),
+  );
+}
+
+/**
+ * Implements hook_module_implements_alter().
+ */
+function erpal_platform_core_module_implements_alter(&$implementations, $hook) {
+  if ($hook == 'views_data_alter') {
+    $group = $implementations['erpal_platform_core'];
+    unset($implementations['erpal_platform_core']);
+    $implementations['erpal_platform_core'] = $group;
+  }
+}

@@ -1,0 +1,10 @@
+@include establish-baseline;
+
+html {
+  @include adjust-leading-to(2);
+}
+
+a {
+  @extend %link-text-deco;
+  color: $color-link;
+}

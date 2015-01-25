@@ -1,0 +1,19 @@
+/** */
+%link-text-deco {
+  text-decoration: underline;
+
+  &:hover {
+    text-decoration: none;
+  }
+}
+
+/** */
+%link-reversed {
+  color: $color-copy;
+  text-decoration: none;
+
+  &:hover {
+    color: $color-link;
+    text-decoration: underline;
+  }
+}

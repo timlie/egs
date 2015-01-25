@@ -1,0 +1,17 @@
+.text-format-wrapper {
+  .grippie {
+    background-color: $color-alto;
+  }
+
+  fieldset {
+    padding-top: $ds;
+    font-size: $font-size-small;
+    background-color: $color-wild-sand;
+  }
+
+  .filter-help a {
+    @extend %link-text-deco;
+    padding: 0;
+    background: none;
+  }
+}

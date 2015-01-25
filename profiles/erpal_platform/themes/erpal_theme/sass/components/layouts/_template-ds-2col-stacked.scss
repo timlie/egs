@@ -1,0 +1,44 @@
+.ds-2col-stacked {
+  .group-header {
+    @extend %clearfix;
+    margin-bottom: $extended-spacing;
+
+    .field {
+      float: left;
+
+      + .field {
+        margin-left: $inner-spacing;
+      }
+    }
+  }
+
+  .group-left,
+  .group-right {
+    > div {
+      margin-bottom: $inner-spacing;
+    }
+  }
+
+  .group-left {
+    width: 75%;
+    padding-right: $extended-spacing;
+    clear: left;
+  }
+
+  .group-right {
+    width: 24.99999%;
+
+    .view-header {
+      font-weight: bold;
+    }
+  }
+
+  .label-above {
+    margin-bottom: .125em;
+    font-weight: bold;
+  }
+}
+
+.field--label-above .field__label {
+  margin-bottom: .125em;
+}

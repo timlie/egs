@@ -1,0 +1,10 @@
+.field-suffix {
+  @include single-transition(border-color, $transition-duration-default);
+  display: inline-block;
+  margin-left: -5px; // move it over the right field border
+  padding: 3px 4px 3px 5px; // and compensate with left-padding
+  border: 1px solid $input-border-color-default;
+  border-left-width: 0;
+  background-color: $input-border-color-default;
+  cursor: default;
+}

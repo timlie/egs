@@ -1,0 +1,20 @@
+.field-type-field-collection {
+  @extend %form-buttons;
+
+  legend {
+    display: none; // temporary - url-item should not be grouped in fieldset
+  }
+
+  tbody td {
+    // exceeds desired selector depth, but is needed
+    .ajax-new-content > div,
+    > div {
+      @extend %form-multi-table-content;
+    }
+
+    .ajax-new-content {
+      float: none;
+      width: 100%;
+    }
+  }
+}

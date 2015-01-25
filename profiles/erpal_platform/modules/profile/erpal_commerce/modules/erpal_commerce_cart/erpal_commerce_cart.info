@@ -1,0 +1,20 @@
+name = ERPAL Commerce Cart
+description = Provides integration between ERPAL components and Commerce Cart.
+core = 7.x
+package = ERPAL Commerce
+
+dependencies[] = erpal_commerce
+dependencies[] = erpal_invoice
+dependencies[] = erpal_quote
+dependencies[] = erpal_crm
+dependencies[] = commerce_cart
+dependencies[] = commerce_payment
+dependencies[] = commerce_billy
+dependencies[] = rules_conditional
+
+; Information added by Drupal.org packaging script on 2015-01-21
+version = "7.x-3.0-alpha5+23-dev"
+core = "7.x"
+project = "erpal_platform"
+datestamp = "1421852589"
+

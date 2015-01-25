@@ -1,0 +1,20 @@
+name = ERPAL Invoice
+description = ERPAL Invoice Module. Provide functionality for creating/management/downloading invoice!
+core = 7.x
+package = ERPAL Invoice
+
+dependencies[] = commerce_order_types
+dependencies[] = commerce_billy
+dependencies[] = rules
+dependencies[] = entityreference
+dependencies[] = field_extrawidgets
+dependencies[] = erpal_core
+dependencies[] = replicate
+
+
+; Information added by drush on 2015-01-21
+version = "7.x-3.0-alpha1+6-dev"
+core = "7.x"
+project = "erpal_invoice"
+datestamp = "1421852621"
+

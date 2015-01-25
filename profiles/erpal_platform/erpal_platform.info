@@ -1,0 +1,106 @@
+name = ERPAL Platform
+description = Install ERPAL Platform
+core = 7.x
+php = 5.3
+distribution_name = ERPAL Platform
+exclusive = 1
+
+;core
+dependencies[] = user
+dependencies[] = menu
+dependencies[] = path
+dependencies[] = dblog
+dependencies[] = admin_menu
+dependencies[] = admin_menu_toolbar
+dependencies[] = search
+dependencies[] = text
+dependencies[] = system
+dependencies[] = node
+dependencies[] = filter
+dependencies[] = comment
+dependencies[] = field
+dependencies[] = field_sql_storage
+dependencies[] = field_ui
+dependencies[] = list
+dependencies[] = file
+dependencies[] = image
+dependencies[] = options
+dependencies[] = number
+dependencies[] = taxonomy
+dependencies[] = block
+dependencies[] = locale
+
+;contrib
+dependencies[] = cat
+dependencies[] = ctools
+dependencies[] = date
+dependencies[] = date_api
+dependencies[] = date_item_ui
+dependencies[] = date_popup
+dependencies[] = date_repeat
+dependencies[] = date_repeat_field
+dependencies[] = date_views
+dependencies[] = dfv
+dependencies[] = entity
+dependencies[] = entity_token
+dependencies[] = entityreference
+dependencies[] = entitycache
+dependencies[] = commerce_ui
+dependencies[] = commerce_customer_ui
+dependencies[] = commerce_order_ui
+dependencies[] = commerce_product_ui
+dependencies[] = commerce_line_item_ui
+dependencies[] = commerce_tax_ui
+dependencies[] = commerce_price
+dependencies[] = field_group
+dependencies[] = field_extrawidgets
+dependencies[] = libraries
+dependencies[] = page_manager
+dependencies[] = panels
+dependencies[] = panels_everywhere
+dependencies[] = panels_mini
+dependencies[] = references_dialog
+dependencies[] = relation_endpoint
+dependencies[] = relation
+dependencies[] = relation_dummy_field
+dependencies[] = relation_ui
+dependencies[] = token
+dependencies[] = views
+dependencies[] = views_bulk_operations
+dependencies[] = views_content
+dependencies[] = pathauto_entity
+dependencies[] = subpathauto
+dependencies[] = pathauto
+dependencies[] = jqmulti
+dependencies[] = jquery_ui_multiselect_widget
+dependencies[] = homebox
+dependencies[] = views_filter_args
+dependencies[] = module_filter
+dependencies[] = fpa
+dependencies[] = ds
+dependencies[] = viewfield
+
+;ERPAL modules
+dependencies[] = erpal_core_ui
+dependencies[] = erpal_budget_ui
+dependencies[] = erpal_output_ui
+dependencies[] = erpal_commerce_ui
+dependencies[] = erpal_crm_ui
+dependencies[] = erpal_invoice_ui
+dependencies[] = erpal_project_ui
+dependencies[] = erpal_quote_ui
+dependencies[] = erpal_payment_modality_ui
+dependencies[] = erpal_layout
+dependencies[] = erpal_menu
+dependencies[] = erpal_platform_core
+dependencies[] = erpal_reports
+
+; System Requirements.
+php_memory_limit = 128M
+
+; Information added by Drupal.org packaging script on 2015-01-21
+version = "7.x-3.0-alpha5+23-dev"
+core = "7.x"
+project = "erpal_platform"
+datestamp = "1421852589"
+

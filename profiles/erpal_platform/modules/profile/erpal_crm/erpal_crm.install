@@ -1,0 +1,101 @@
+<?php
+
+/**
+ * @file
+ * Contains implementation of hooks that should be executed during module
+ * install or uninstall processes.
+ */
+
+/**
+ * Implements hook_install().
+ */
+function erpal_crm_install() {
+  $t = get_t();
+
+  // Create a new budget type.
+  $sales_forecast = entity_create('erpal_budget_type', array(
+    'type' => 'sales_forecast',
+    'label' => $t('Sales forecast'),
+    'description' => $t('Possible forecast of sales success.'),
+  ));
+  variable_set('budget_' . $sales_forecast->type, 'money');
+  erpal_budget_type_save($sales_forecast);
+
+  // We need to add our fields to already existing activity bundles.
+  foreach (crm_core_activity_types() as $activity_type) {
+    erpal_crm_crm_core_activity_type_insert($activity_type);
+  }
+
+  // We need to add our fields to already existing contact bundles.
+  foreach (crm_core_contact_types() as $contact_type) {
+    erpal_crm_crm_core_contact_type_insert($contact_type);
+  }
+
+  // Create a email activity type.
+  $email = entity_create('crm_core_activity_type', array(
+    'type' => 'email',
+    'label' => $t('Email'),
+    'description' => $t('A email messaging between 2 or more contacts'),
+  ));
+  crm_core_activity_type_save($email);
+
+  // Create a sales process activity type.
+  $sales_process = entity_create('crm_core_activity_type', array(
+    'type' => 'sales_process',
+    'label' => $t('Sales process'),
+    'description' => $t('A sales process between customer and 1 or more contacts from a company.'),
+  ));
+  crm_core_activity_type_save($sales_process);
+
+  // Add default relationships.
+  $relation_types_info = array(
+    array(
+      'relation_type' => 'crm_business',
+      'label' => $t('Has business relation with'),
+      'source_bundles' => array(
+        'crm_core_contact:individual',
+        'crm_core_contact:organization',
+        'crm_core_contact:household',
+      ),
+      'r_unique' => TRUE,
+    ),
+  );
+  foreach ($relation_types_info as $relation_type_info) {
+    $relation_type = relation_type_create($relation_type_info);
+    relation_type_save($relation_type);
+  }
+
+  // Include file which contains default field and field instances.
+  module_load_include('fields.inc', 'erpal_crm');
+
+  // Add new field to user entity that references CRM Contact.
+  $fields = _erpal_crm_user_default_fields();
+  erpal_core_add_fields($fields, 'field');
+
+  $field_instances = _erpal_crm_user_field_instances();
+  erpal_core_add_fields($field_instances, 'instance');
+
+  // Enable pathauto generetion for crm_core_contact, crm_core_activity entities.
+  $available = variable_get('pathauto_entity_available_entity_types', array());
+  $available['crm_core_contact'] = 'crm_core_contact';
+  $available['crm_core_activity'] = 'crm_core_activity';
+  variable_set('pathauto_entity_available_entity_types', $available);
+  variable_set('subpathauto_ignore_admin', 0);
+  variable_set('subpathauto_depth', 4);
+  variable_set('pathauto_crm_core_contact_pattern', 'contact/[crm-core-contact:contact-id]');
+  variable_set('pathauto_crm_core_activity_pattern', 'activity/[crm-core-activity:activity-id]');
+
+  $urls = array(
+    'crm-core/contact' => 'contacts',
+    'crm-core/activity' => 'activities'
+  );
+  foreach ($urls as $url => $alias) {
+    if (!drupal_lookup_path('alias', $alias)) {
+      $path = array(
+        'source' => $url,
+        'alias' => $alias,
+      );
+      path_save($path);
+    }
+  }
+}

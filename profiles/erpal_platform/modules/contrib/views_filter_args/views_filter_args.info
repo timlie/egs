@@ -1,0 +1,13 @@
+name = Views Filter Args
+description = Provides ability  to use args in filter criteria section.
+core = 7.x
+package = views
+
+dependencies[] = views
+
+
+; Information added by drush on 2015-01-21
+version = ""
+project = "views_filter_args"
+datestamp = "1421852639"
+

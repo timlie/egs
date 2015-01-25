@@ -1,0 +1,26 @@
+name = ERPAL CRM
+description = Provides base for the customer relations management system.
+core = 7.x
+package = ERPAL CRM
+
+dependencies[] = crm_core_activity
+dependencies[] = crm_core_contact
+dependencies[] = crm_core_relationship
+dependencies[] = erpal_budget_ui
+dependencies[] = email
+dependencies[] = field_collection
+dependencies[] = image
+dependencies[] = url
+dependencies[] = rules_conditional
+dependencies[] = relation_dialog
+dependencies[] = relation_add
+dependencies[] = relation_view_formatter
+
+files[] = includes/relation.inline_entity_form.inc
+
+; Information added by Drupal.org packaging script on 2015-01-21
+version = "7.x-3.0-alpha5+23-dev"
+core = "7.x"
+project = "erpal_platform"
+datestamp = "1421852589"
+

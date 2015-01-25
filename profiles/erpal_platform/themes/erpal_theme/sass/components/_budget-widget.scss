@@ -1,0 +1,152 @@
+$budget-widget-controlling-height: 3px;
+
+.budget-wrapper {
+  $bar-height: 20px;
+
+  display: inline-block;
+  position: relative;
+
+  label {
+    &:after {
+      content: ':';
+    }
+  }
+
+  .labels {
+    @extend %clearfix;
+  }
+
+  .labels-available {
+    float: left;
+  }
+
+  .labels-budget {
+    float: right;
+  }
+
+  .labels-available-percent {
+    display: inline-block;
+    color: rgba($color-copy, .5);
+
+    &:before {
+      content: '(';
+    }
+
+    &:after {
+      content: ')';
+    }
+  }
+
+  .bar {
+    position: relative;
+    height: $bar-height;
+    background-color: rgba(#000, .1);
+  }
+
+  .progress {
+    @include single-box-shadow(0, 0, 0, 0, transparent);
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    margin: 0;
+    height: auto;
+    border-radius: 0;
+    background-color: $color-bg-highlight;
+  }
+
+  .p25,
+  .p50,
+  .p75 {
+    position: absolute;
+    top: 100%;
+    margin-left: -1px;
+    width: 1px;
+    height: 3px;
+    background-color: rgba(#000, .5);
+  }
+
+  $percent: (25, 50, 75);
+  @each $value in $percent {
+    .p#{$value} {
+      left: $value * 1%;
+    }
+  }
+
+  .usage {
+    position: relative;
+    z-index: 1;
+    line-height: $bar-height;
+    font-size: .8em;
+    text-align: center;
+  }
+
+  &.is-negative {
+    .available .value,
+    .used {
+      color: $color-monza;
+    }
+
+    .progress {
+      background-color: rgba($color-monza, .3);
+    }
+  }
+
+  // project & task display
+  .budget-item & {
+    display: block;
+
+    .labels {
+      text-align: right;
+    }
+
+    .labels-budget {
+      display: none;
+    }
+
+    label {
+      display: none;
+    }
+  }
+
+  // project & task controlling table
+  .budget-row & {
+    position: absolute;
+    left: 0;
+    right: 0;
+
+    .usage,
+    .labels {
+      display: none;
+    }
+
+    .bar {
+      height: $budget-widget-controlling-height;
+    }
+  }
+
+  // tworow display
+  .erpaltworow-header & {
+    display: block;
+  }
+}
+
+// project & task display
+.budget-item {
+  font-size: 12px;
+
+  ul {
+    padding-left: 16px;
+  }
+
+  .views-row + .views-row {
+    margin-top: $ds;
+  }
+}
+
+// project & task controlling table
+.budget-row {
+  .views-table & td {
+    padding-top: 6px + $budget-widget-controlling-height;
+  }
+}

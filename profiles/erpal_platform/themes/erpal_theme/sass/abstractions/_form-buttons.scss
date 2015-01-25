@@ -1,0 +1,70 @@
+/** */
+%form-add-button {
+  @include button-small($color-bondi-blue);
+  line-height: $font-line-height-reset;
+
+  &:before {
+    @include font-awesome-icon(plus);
+    margin: {
+      right: 5px;
+      left: 0; // default button reset
+    }
+  }
+}
+
+/** */
+%form-buttons {
+  button {
+    // in table
+    &[name*="remove"] {
+      @extend %button-icon-only-small;
+      @include button-icon-only(times);
+      float: right;
+      margin: {
+        top: 19px; // adjustment to line-up with input-/select-fields
+        right: 0;
+      }
+      vertical-align: bottom;
+
+      &:hover {
+        background-color: $color-monza;
+      }
+    }
+
+    // under table
+    &[name*="add"] {
+      @extend %form-add-button;
+    }
+  }
+}
+
+/** */
+%ief-buttons {
+  [id*="form-actions"] {
+    margin-top: $ds;
+
+    button {
+      @extend %form-add-button;
+
+      &[id*="save"] {
+        @include button-color($color-deep-sea);
+
+        &:before {
+          @include font-awesome-icon(check);
+        }
+      }
+
+      &[id*="remove-confirm"] {
+        @include button-color($color-monza);
+
+        &:before {
+          @include font-awesome-icon(times);
+        }
+      }
+
+      &[id*="cancel"]:before {
+        content: '';
+      }
+    }
+  }
+}

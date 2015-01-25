@@ -1,0 +1,40 @@
+.pane-page-actions {
+  @extend %clearfix;
+  margin-bottom: 30px;
+
+  ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  li {
+    float: left;
+
+    + li {
+      margin-left: $ds;
+    }
+  }
+
+  a {
+    @include button-small($color-bondi-blue);
+    margin: 0;
+
+    &:before {
+      margin-right: 5px;
+    }
+
+    $action-icons: (
+      add:    plus,
+      pdf:    file-pdf-o,
+      config: cog
+
+    );
+    // icons for actions
+    @each $item, $code in $action-icons {
+      &[href*="#{$item}"]:before {
+        @include font-awesome-icon($code);
+      }
+    }
+  }
+}

@@ -1,0 +1,763 @@
+<?php
+
+/**
+ * @file
+ * Provides an entity for recording work results.
+ */
+
+/**
+ * Include file with hook_entity_property_info().
+ */
+module_load_include('inc', 'erpal_payment_modality', 'erpal_payment_modality.info');
+
+/**
+ * Implements hook_entity_info().
+ */
+function erpal_payment_modality_entity_info() {
+  $return = array(
+    'erpal_payment_modality' => array(
+      'label' => t('ERPAL payment modality'),
+      'entity class' => 'ERPALPaymentModalityEntity',
+      'inline entity form' => array('controller' => 'ErpalPaymentModalityInlineEntityFormController'),
+      'controller class' => 'ERPALPaymentModalityController',
+      'base table' => 'erpal_payment_modality',
+      'revision table' => 'erpal_payment_modality_revision',
+      'fieldable' => TRUE,
+      'entity keys' => array(
+        'id' => 'payment_modality_id',
+        'bundle' => 'type',
+        'label' => 'title',
+        'revision' => 'revision_id',
+      ),
+      'bundle keys' => array(
+        'bundle' => 'type',
+      ),
+      'bundles' => array(),
+      'load hook' => 'erpal_payment_modality_load',
+      'view modes' => array(
+        'full' => array(
+          'label' => t('Full content'),
+          'custom settings' => FALSE,
+        ),
+      ),
+      'label callback' => 'erpal_payment_modality_label',
+      'uri callback' => 'entity_class_uri',
+      'access callback' => 'erpal_payment_modality_access',
+      'module' => 'erpal_payment_modality',
+      'permission labels' => array(
+        'singular' => t('payment modality'),
+        'plural' => t('payment modalities'),
+      ),
+    ),
+  );
+  $return['erpal_payment_modality_type'] = array(
+    'label' => t('ERPAL payment modality Type'),
+    'entity class' => 'ERPALPaymentModalityType',
+    'controller class' => 'ERPALPaymentModalityTypeController',
+    'base table' => 'erpal_payment_modality_type',
+    'fieldable' => FALSE,
+    'bundle of' => 'erpal_payment_modality',
+    'exportable' => TRUE,
+    'entity keys' => array(
+      'id' => 'id',
+      'name' => 'type',
+      'label' => 'label',
+    ),
+    'module' => 'erpal_payment_modality',
+    // Enable the entity API's admin UI.
+    'admin ui' => array(
+      'path' => 'admin/erpal/payment-modality-types',
+      'file' => 'erpal_payment_modality.admin.inc',
+      'controller class' => 'EntityDefaultUIController',
+    ),
+    'access callback' => 'erpal_payment_modality_type_access',
+  );
+
+  if (module_exists('uuid')) {
+    $return['erpal_payment_modality']['uuid'] = TRUE;
+    $return['erpal_payment_modality']['entity keys']['uuid'] = 'uuid';
+    $return['erpal_payment_modality']['entity keys']['revision uuid'] = 'vuuid';
+  }
+
+  return $return;
+}
+
+/**
+ * Entity label callback: returns the label for an individual erpal payment
+ * modality.
+ */
+function erpal_payment_modality_label($entity, $type = 'full') {
+  $payment_modality_wrapper = entity_metadata_wrapper('erpal_payment_modality', $entity);
+      
+  $query = new EntityFieldQuery();
+  $query->entityCondition('entity_type', 'commerce_line_item')
+    ->entityCondition('bundle', 'product')
+    ->fieldCondition('field_payment_modality', 'target_id', $payment_modality_wrapper->payment_modality_id->value());
+  $line_items = $query->execute();
+  if ($line_items) {
+    $row = reset($line_items['commerce_line_item']);
+    $line_item = commerce_line_item_load($row->line_item_id);
+    $line_item_wrapper = entity_metadata_wrapper('commerce_line_item', $line_item);
+    $total = $line_item_wrapper->commerce_total->value();
+    if ($payment_modality_wrapper->field_amount_type->value() == 'percent') {
+      $amount = ($payment_modality_wrapper->field_amount->value() / 100) * $total['amount'];
+    }
+    else {
+      $amount = commerce_currency_decimal_to_amount($payment_modality_wrapper->field_amount->value(), $total['currency_code']);
+    }
+    if ($type == 'amount') {
+      return commerce_currency_format($amount, $total['currency_code']);
+    }
+
+    return t('!label (!amount)', array(
+      '!label' => $payment_modality_wrapper->title->value(),
+      '!amount' => commerce_currency_format($amount, $total['currency_code']),
+    ));
+  }
+  else {
+    return $payment_modality_wrapper->title->value();
+  }
+}
+
+/**
+ * Implements hook_entity_info_alter().
+ *
+ * Use this hook to specify payment modality bundles to avoid a recursion,
+ * as loading the payment modality types needs the entity info too.
+ */
+function erpal_payment_modality_entity_info_alter(&$entity_info) {
+  foreach (erpal_payment_modality_types() as $type => $info) {
+    $entity_info['erpal_payment_modality']['bundles'][$type] = array(
+      'label' => $info->label,
+      'admin' => array(
+        'path' => 'admin/erpal/payment-modality-types/manage/%erpal_payment_modality_type',
+        'real path' => 'admin/erpal/payment-modality-types/manage/' . $type,
+        'bundle argument' => 4,
+      ),
+    );
+  }
+
+  if (!empty($entity_info['commerce_line_item'])) {
+    $entity_info['commerce_line_item']['inline entity form'] = array(
+      'controller' => 'ErpalCommerceLineItemInlineEntityFormController',
+    );
+  }
+}
+
+/**
+ * Implements hook_module_implements_alter().
+ */
+function erpal_payment_modality_module_implements_alter(&$implementations, $hook) {
+  if ($hook == 'entity_info_alter') {
+    $group = $implementations['erpal_payment_modality'];
+    unset($implementations['erpal_payment_modality']);
+    $implementations['erpal_payment_modality'] = $group;
+  }
+}
+
+/**
+ * Implements hook_permission().
+ */
+function erpal_payment_modality_permission() {
+  $permissions = array(
+    'administer payment_modality types' => array(
+      'title' => t('Administer payment modality types'),
+      'description' => t('Allows users to configure payment modality types and their fields.'),
+      'restrict access' => TRUE,
+    ),
+  );
+
+  $permissions += erpal_core_entity_access_permissions('erpal_payment_modality');
+
+  return $permissions;
+}
+
+/**
+ * Access callback for payment modality.
+ */
+function erpal_payment_modality_access($op, $payment_modality, $account = NULL, $entity_type = NULL) {
+  if (!isset($account)) {
+    $account = $GLOBALS['user'];
+  }
+  if (is_object($payment_modality)) {
+    $payment_modality_type = $payment_modality->type;
+  }
+  else {
+    $payment_modality_type = $payment_modality;
+  }
+
+  if ($op != 'view') {
+    // First grant access to the entity for the specified operation if no other
+    // module denies it and at least one other module says to grant access.
+    $access_results = module_invoke_all('erpal_entity_access', $op, $payment_modality, $account, $entity_type);
+
+    if (in_array(FALSE, $access_results, TRUE)) {
+      return FALSE;
+    }
+    elseif (in_array(TRUE, $access_results, TRUE)) {
+      return TRUE;
+    }
+  }
+
+  switch ($op) {
+    case 'create':
+      $access = (user_access('administer erpal_payment_modality entities', $account) ||
+        user_access('create erpal_payment_modality entities', $account) ||
+        user_access('create erpal_payment_modality entities of bundle ' . $payment_modality_type, $account));
+      return $access;
+
+    case 'view':
+      $access = (user_access('administer erpal_payment_modality entities', $account) ||
+        user_access('view any erpal_payment_modality entity', $account) ||
+        user_access('view any erpal_payment_modality entity of bundle ' . $payment_modality_type, $account));
+      return $access;
+
+    case 'edit':
+    case 'update':
+      $access = (user_access('administer erpal_payment_modality entities', $account) ||
+        user_access('edit any erpal_payment_modality entity', $account) ||
+        user_access('edit any erpal_payment_modality entity of bundle ' . $payment_modality_type));
+      return $access;
+
+    case 'delete':
+      $access = (user_access('administer erpal_payment_modality entities', $account) ||
+        user_access('delete any erpal_payment_modality entity', $account) ||
+        user_access('delete any erpal_payment_modality entity of bundle ' . $payment_modality_type));
+      return $access;
+
+    case 'create_view':
+      // Check if user has access permission to a view with
+      // create payment modality links.
+      if (user_access('administer erpal_payment_modality entities', $account) ||
+        user_access('create erpal_payment_modality entities', $account)) {
+        return TRUE;
+      }
+      // Allow access if account has create permissions
+      // for any erpal payment modality type.
+      foreach (array_keys(erpal_payment_modality_types()) as $type) {
+        if (entity_access('create', 'erpal_payment_modality', $type, $account)) {
+          return TRUE;
+        }
+      }
+      return FALSE;
+  }
+}
+
+/**
+ * Payment modality type access callback.
+ */
+function erpal_payment_modality_type_access() {
+  return user_access('administer payment_modality types');
+}
+
+/**
+ * Load a ERPAL payment modality object.
+ */
+function erpal_payment_modality_load($payment_modality_id, $reset = FALSE) {
+  if (empty($payment_modality_id)) {
+    return array();
+  }
+
+  if ($payment_modality_id !== FALSE) {
+    $payment_modality_id = array($payment_modality_id);
+  }
+
+  $payment_modalities = erpal_payment_modality_load_multiple($payment_modality_id, array(), $reset);
+  return reset($payment_modalities);
+}
+
+/**
+ * Load multiple payment modalities based on certain conditions.
+ */
+function erpal_payment_modality_load_multiple($payment_modality_ids = array(), $conditions = array(), $reset = FALSE) {
+  return entity_load('erpal_payment_modality', $payment_modality_ids, $conditions, $reset);
+}
+
+/**
+ * Save single payment modalities object to db. Wrapper for controller.
+ *
+ * @param object $payment_modality
+ *   Entity object of erpal_payment_modality type.
+ */
+function erpal_payment_modality_save($payment_modality) {
+  return entity_get_controller('erpal_payment_modality')->save($payment_modality);
+}
+
+/**
+ * Delete single payment modality.
+ *
+ * @todo This function should accept $payment_modality_id,
+ *   but payment modality object.
+ *
+ * @param object $payment_modality
+ *   Entity object of erpal_payment_modality type.
+ */
+function erpal_payment_modality_delete($payment_modality) {
+  erpal_payment_modality_delete_multiple(array($payment_modality->payment_modality_id));
+}
+
+/**
+ * Delete multiple payment modalities. Wrapper for controller.
+ *
+ * @param array $payment_modality_ids
+ *   array of entity ids that should be deleted.
+ */
+function erpal_payment_modality_delete_multiple($payment_modality_ids) {
+  entity_get_controller('erpal_payment_modality')->delete($payment_modality_ids);
+}
+
+/**
+ * Implements hook_field_extra_fields().
+ */
+function erpal_payment_modality_field_extra_fields() {
+  $extra = array();
+
+  foreach (erpal_payment_modality_types() as $type) {
+    $extra['erpal_payment_modality'][$type->type] = array(
+      'form' => array(
+        'title_default' => array(
+          'label' => 'Auto generate title',
+          'description' => t('If you uncheck, you can change pattern of title'),
+          'weight' => -5,
+        ),
+        'title' => array(
+          'label' => 'Title',
+          'description' => t('ERPAL payment modality module element'),
+          'weight' => -5,
+        ),
+      ),
+    );
+  }
+
+  return $extra;
+}
+
+/**
+ * Implements hook_field_formatter_info().
+ */
+function erpal_payment_modality_field_formatter_info() {
+  return array(
+    'erpal_payment_modality_amount' => array(
+      'label' => t('Full amount'),
+      'field types' => array('number_float'),
+    ),
+  );
+}
+
+/**
+ * Implements hook_field_formatter_view().
+ */
+function erpal_payment_modality_field_formatter_view($entity_type, $entity, $field, $instance, $langcode, $items, $display) {
+  $element = array();
+  if ($entity_type == 'erpal_payment_modality') {
+    // Loop through each price value in this field.
+    foreach ($items as $delta => $item) {
+  
+      $element[$delta] = array('#markup' => erpal_payment_modality_label($entity, 'amount'));
+    }
+  }
+
+  return $element;
+}
+
+/**
+ * Load payment modality Type.
+ */
+function erpal_payment_modality_type_load($payment_modality_type) {
+  return erpal_payment_modality_types($payment_modality_type);
+}
+
+/**
+ * List of payment modality Types.
+ */
+function erpal_payment_modality_types($type_name = NULL) {
+  $types = entity_load_multiple_by_name('erpal_payment_modality_type', isset($type_name) ? array($type_name) : FALSE);
+  return isset($type_name) ? reset($types) : $types;
+}
+
+/**
+ * Returns the human-readable names of an payment modality types.
+ *
+ * @return array
+ *   An array as used by hook_options_list().
+ */
+function erpal_payment_modality_type_get_names() {
+  $names =& drupal_static(__FUNCTION__, array());
+  if (empty($names)) {
+    $types = erpal_payment_modality_types();
+    foreach ($types as $type) {
+      $names[$type->type] = check_plain($type->label);
+    }
+  }
+
+  return $names;
+}
+
+
+/**
+ * Returns the human-readable name of an payment modality type.
+ *
+ * @param string $type_name
+ *   The machine name for an payment modality type.
+ *
+ * @return string
+ *   A human readable name for the payment modality type or FALSE.
+ */
+function erpal_payment_modality_type_get_name($type_name) {
+  $names = erpal_payment_modality_type_get_names();
+  if (isset($names[$type_name])) {
+    return $names[$type_name];
+  }
+  else {
+    return FALSE;
+  }
+}
+
+/**
+ * Creates or saves an payment modality type.
+ *
+ * @param object $payment_modality_type
+ *   The payment modality type info to be saved
+ */
+function erpal_payment_modality_type_save($payment_modality_type) {
+  return entity_get_controller('erpal_payment_modality_type')->save($payment_modality_type);
+}
+
+/**
+ * Implements hook_erpal_payment_modality_type_insert().
+ */
+function erpal_payment_modality_erpal_payment_modality_type_insert($payment_modality_type) {
+  module_load_include('inc', 'erpal_payment_modality', 'erpal_payment_modality.fields');
+
+  $fields = erpal_payment_modality_add_default_fields();
+  erpal_core_add_fields($fields['fields'], 'field');
+  erpal_core_add_fields($fields['instances'], 'instance');
+}
+
+/**
+ * Implements hook_flush_caches().
+ */
+function erpal_payment_modality_flush_caches() {
+
+  // Change instances only on installation process.
+  if (drupal_installation_attempted()) {
+    // Change field 'commerce_line_items' widget to 'inline_entity_form' and
+    // add new view for display.
+    $commerce_order_types = array('quote', 'commerce_order', 'invoice');
+    foreach ($commerce_order_types as $commerce_order_type) {
+      $info_instance = field_info_instance('commerce_order', 'commerce_line_items', $commerce_order_type);
+      if (!empty($info_instance)) {
+        if ($commerce_order_type != 'invoice') {
+          $view = 'erpal_line_items|block_1';
+          $info_instance['display']['administrator']['settings']['view'] = $view;
+          $info_instance['display']['customer']['settings']['view'] = $view;
+          $info_instance['display']['default']['settings']['view'] = $view;
+        }
+  
+        $info_instance['widget'] = array(
+          'module' => 'erpal_commerce',
+          'settings' => array(
+            'fields' => array(),
+            'line_item_type' => 'product',
+            'type_settings' => array(),
+          ),
+          'type' => 'erpal_commerce_line_item',
+          'weight' => -10,
+        );
+  
+        if ($commerce_order_type == 'invoice') {
+          $info_instance['widget']['settings']['line_item_type'] = 'invoice';
+        }
+  
+        field_update_instance($info_instance);
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_forms().
+ *
+ * Create form for adding/editing erpal_payment_modality.
+ * Their id is like 'erpal_payment_modality_edit_' . $bundle . '_form'.
+ *
+ * @see entity_ui_get_form()
+ */
+function erpal_payment_modality_forms($form_id, $args) {
+  $forms = array();
+
+  // Check whether it is erpal_payment_modality form.
+  if (strpos($form_id, 'erpal_payment_modality_edit_') === 0) {
+    $forms[$form_id] = array(
+      'callback' => 'erpal_payment_modality_form',
+    );
+  }
+
+  return $forms;
+}
+
+/**
+ * Payment modality view callback.
+ */
+function erpal_payment_modality_view($payment_modality, $view_mode = 'full') {
+  $langcode = $GLOBALS['language_content']->language;
+  module_invoke_all('entity_view', $payment_modality, 'erpal_payment_modality', $view_mode, $langcode);
+  $build = $payment_modality->view('full', $langcode);
+
+  return $build;
+}
+
+/**
+ * Implements hook_views_api().
+ */
+function erpal_payment_modality_views_api() {
+  return array(
+    'api' => 3,
+    'path' => drupal_get_path('module', 'erpal_payment_modality') . '/views',
+  );
+}
+
+/**
+ * Implements hook_file_download_access().
+ */
+function erpal_payment_modality_file_download_access($file_item, $entity_type, $entity) {
+  if ($entity_type == 'erpal_payment_modality') {
+    return erpal_payment_modality_access('view', $entity);
+  }
+}
+
+/**
+ * Implements hook_theme().
+ */
+function erpal_payment_modality_theme($existing, $type, $theme, $path) {
+  return array(
+    'payment_modality' => array(
+      'render element' => 'elements',
+      'template' => 'payment_modality',
+      'path' => $path . '/templates',
+    ),
+  );
+}
+
+/**
+ * Implements hook_preprocess().
+ */
+function erpal_payment_modality_preprocess_payment_modality(&$variables) {
+  $variables['view_mode'] = $variables['elements']['#view_mode'];
+  $variables['payment_modality'] = $variables['elements']['#payment_modality'];
+  $variables['content'] = entity_build_content('erpal_payment_modality', $variables['payment_modality']);
+
+  // Add classes based upon payment modality type.
+  $variables['classes_array'][] = 'payment_modality';
+  $variables['classes_array'][] = 'payment_modality-' . $variables['payment_modality']->type;
+
+  $entity = $variables['payment_modality'];
+  $variables['theme_hook_suggestions'][] = 'payment_modality__' . $entity->type;
+  $variables['theme_hook_suggestions'][] = 'payment_modality__' . $entity->payment_modality_id;
+}
+
+/**
+ * Helper to check uuid fields existence.
+ */
+function _erpal_payment_modality_check_uuid() {
+  $schema_changed = FALSE;
+  module_load_include('install', 'uuid', 'uuid');
+  $field = uuid_schema_field_definition();
+  if (!db_field_exists('erpal_payment_modality', 'uuid')) {
+    db_add_field('erpal_payment_modality', 'uuid', $field);
+    db_add_index('erpal_payment_modality', 'uuid', array('uuid'));
+    $schema_changed = TRUE;
+  }
+  if (!db_field_exists('erpal_payment_modality_revision', 'vuuid')) {
+    db_add_field('erpal_payment_modality_revision', 'vuuid', $field);
+    db_add_index('erpal_payment_modality_revision', 'vuuid', array('vuuid'));
+    $schema_changed = TRUE;
+  }
+  if ($schema_changed) {
+    drupal_get_schema(NULL, TRUE);
+  }
+}
+
+/**
+ * Implements hook_uuid_sync().
+ */
+function erpal_payment_modality_uuid_sync() {
+  _erpal_payment_modality_check_uuid();
+}
+
+/**
+ * Implements hook_views_pre_render().
+ */
+function erpal_payment_modality_views_pre_render(&$view) {
+  // Hide Create invoice line item column in view.
+  if ($view->name == 'erpal_payment_modality') {
+    $order = NULL;
+    // Hide from user pages.
+    if (arg(0) == 'order' && is_numeric(arg(1))) {
+      $order = commerce_order_load(arg(1));
+    }
+    // Hide from admin pages.
+    if (arg(0) == 'admin' && is_numeric(arg(3))) {
+      $order = commerce_order_load(arg(3));
+    }
+    if ($order && $order->type == 'commerce_order') {
+      return;
+    }
+    unset($view->field['create_invoice_line_item']);
+    unset($view->display_handler->handlers['field']['create_invoice_line_item']);
+  }
+}
+
+/**
+ * Create invoice line item by Payment modality and product line item.
+ * 
+ * @param object $payment_modality
+ *   The entity of payment modality type.
+ * @param object $line_item
+ *   The entity of Commerce line item type.
+ * @param array $order
+ *   Array with properties of object.
+ * @param bool $status
+ *   Boolian flag show or not show status message, default FALSE.
+ * @param string $invoice_label
+ *   Pass label if you want generate label by you self, if not label will be
+ *   generated by default.
+ * @param int $quantity
+ *   Quantity of payment modalities should be added to invoice.
+ * @param bool $unique_label
+ *   Boolian flag if label should be unique.
+ */
+function erpal_payment_modality_create_line_item($payment_modality, $line_item, $order, $status = FALSE, $invoice_label = FALSE, $quantity = 1, $unique_label = TRUE) {
+
+  // Generate label for invoice line item.
+  if (!$invoice_label) {
+    $invoice_label = erpal_payment_modality_generate_label($payment_modality, $line_item, $order);
+  }
+
+  // Check if already exists invoice line item for this payment modality.
+  $conditions = array(
+    'line_item_label' => $invoice_label,
+    'type' => 'invoice',
+  );
+  $invoice = commerce_line_item_load_multiple(array(), $conditions, TRUE);
+
+  if (!empty($invoice) && $unique_label) {
+    $invoice = reset($invoice);
+
+    // If invoice line item already added to invoice nothing to do
+    // here.
+    if ($invoice->order_id != $order['order_id']) {
+      return;
+    }
+    if ($status) {
+      drupal_set_message(t('Invoice line item has already created.'));
+    }
+  }
+  else {
+    $invoice = commerce_line_item_new('invoice');
+    if ($status) {
+      drupal_set_message(t('Invoice line item was created.'));
+    }
+  }
+
+  if ($total = erpal_payment_modality_total($payment_modality, $line_item, $quantity)) {
+
+    // Add all data to new invoice line item.
+    $invoice->line_item_label = $invoice_label;
+    $invoice->quantity = $quantity;
+    $invoice->order_id = $order['order_id'];
+    $langcode = field_language('commerce_line_item', $invoice, 'commerce_unit_price');
+    $invoice->commerce_unit_price[$langcode][0] = $total;
+    $langcode = field_language('commerce_line_item', $invoice, 'field_line_item_order');
+    $invoice->field_line_item_order[$langcode][0]['target_id'] = $order['order_id'];
+
+    $field = field_info_field('field_line_item_delivery_date');
+    $instance = field_info_instance('commerce_line_item', 'field_line_item_delivery_date', 'invoice');
+    $items = date_default_value($field, $instance, $langcode);
+    $invoice->field_line_item_delivery_date[$langcode] = $items;
+
+    commerce_line_item_save($invoice);
+  }
+  return $invoice;
+}
+
+/**
+ * Generate label for invoice line item.
+ */
+function erpal_payment_modality_generate_label($payment_modality, $line_item, $order) {
+  return implode(' - ', array(
+    $order['order_number'],
+    $line_item->line_item_label,
+    $payment_modality->title,
+  ));
+}
+
+/**
+ * Calculate total price of payment modality.
+ */
+function erpal_payment_modality_total($payment_modality, $line_item, $quantity = 1) {
+  // Provide logic for calculation.
+  $total = commerce_line_items_total(array($line_item));
+
+  $field_amount_type = field_get_items('erpal_payment_modality', $payment_modality, 'field_amount_type');
+  $field_amount = field_get_items('erpal_payment_modality', $payment_modality, 'field_amount');
+
+  if (!empty($field_amount_type) && !empty($field_amount)) {
+    if ($field_amount_type[0]['value'] == 'percent') {
+      $total['amount'] = ($field_amount[0]['value'] / 100) * $total['amount'];
+    }
+    else {
+      $total['amount'] = commerce_currency_decimal_to_amount($field_amount[0]['value'], $total['currency_code']);
+    }
+  }
+
+  // Merge all price components with line item and invoice line item.
+  erpal_payment_modality_price_components($total, $line_item);
+  return $total;
+}
+
+/**
+ * Merge all price components with line item and invoice line item.
+ */
+function erpal_payment_modality_price_components(&$total, $line_item, $field = 'commerce_total') {
+  $total_line_item = field_get_items('commerce_line_item', $line_item, $field);
+  $price_components = $total_line_item[0]['data'];
+  $difference = $total_line_item[0]['amount'] / $total['amount'];
+  foreach ($price_components['components'] as &$price_component) {
+    $price_component['price']['amount'] = $price_component['price']['amount'] / $difference;
+  }
+  $total['data'] = $price_components;
+}
+
+/**
+ * Replace tokens in title.
+ */
+function erpal_payment_modality_title($payment_modality) {
+  $field_amount = field_get_items('erpal_payment_modality', $payment_modality, 'field_amount');
+  $field_amount_type = field_get_items('erpal_payment_modality', $payment_modality, 'field_amount_type');
+  $field_due_with = field_get_items('erpal_payment_modality', $payment_modality, 'field_due_with');
+
+  $payment_modality->title = t($payment_modality->title, array(
+    '!amount' => $field_amount[0]['value'],
+    '!amount_type' => $field_amount_type[0]['value'] == 'percent' ? '%' : '',
+    '!due_with' => $field_due_with[0]['value'] == 'delivery' ? t('On delivery') : t('On order'),
+  ));
+}
+
+/**
+ * Load line item for current payment modality.
+ */
+function erpal_payment_modality_load_line_item($payment_modality_id) {
+  $query = new EntityFieldQuery();
+  $query->entityCondition('entity_type', 'commerce_line_item')
+    ->entityCondition('bundle', 'product')
+    ->fieldCondition('field_payment_modality', 'target_id', $payment_modality_id);
+  $result = $query->execute();
+  if (!empty($result['commerce_line_item'])) {
+    $line_item_id = array_keys($result['commerce_line_item']);
+    $line_item_id = reset($line_item_id);
+    if (!empty($line_item_id)) {
+      return commerce_line_item_load($line_item_id);
+    }
+  }
+}

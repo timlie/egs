@@ -1,0 +1,11 @@
+.pdf-link {
+  display: inline-block;
+  white-space: nowrap;
+
+  &:before {
+    @include font-awesome-icon(file-pdf-o);
+    margin-right: 3px;
+    float: left;
+    text-indent: 0;
+  }
+}

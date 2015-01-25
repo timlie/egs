@@ -1,0 +1,27 @@
+.view-filters {
+  float: left;
+
+  .views-exposed-widget {
+    padding-top: 0;
+
+    .form-submit {
+      margin-top: 19px;
+    }
+  }
+
+  .form-submit {
+    @include button-icon-only(filter);
+
+    &[value=Reset]:before {
+      @include font-awesome-icon(times);
+    }
+  }
+
+  // TODO: generalize this styling to use for more than this field
+  label {
+    display: block;
+    margin: 0 0 5px;
+    font-size: $font-size-small;
+    font-weight: normal;
+  }
+}

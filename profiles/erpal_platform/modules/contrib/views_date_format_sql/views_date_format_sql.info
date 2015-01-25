@@ -1,0 +1,17 @@
+name = Views Date Format SQL
+description = Allows to format date fields using SQL. This enables group aggregation. (Needs 'Date Views' to work with Date-module fields.)
+dependencies[] = views
+package = Views
+core = 7.x
+files[] = views_date_format_sql.module
+
+; Views handlers
+files[] = includes/views_date_format_sql_handler_date.inc
+files[] = includes/views_date_format_sql_handler_date_field.inc
+
+
+; Information added by drush on 2015-01-21
+version = "master-dev"
+project = "views_date_format_sql"
+datestamp = "1421852644"
+

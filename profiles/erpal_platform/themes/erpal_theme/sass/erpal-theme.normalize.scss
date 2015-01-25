@@ -1,0 +1,76 @@
+@import 'compass/css3'; // needed for box-sizing
+
+// Import the legacy variables (relevant for controlling compass-normalize).
+@import 'variables/**/*';
+@import 'normalize';
+
+// Use 'border-box' for the box model.
+*,
+*:before,
+*:after {
+  @include box-sizing(border-box);
+}
+
+// responsive image and video
+img,
+video {
+  max-width: 100%;
+  height: auto;
+}
+
+media {
+  max-width: 100%;
+}
+
+img {
+  vertical-align: middle;
+}
+
+// typography
+#{headings()} {
+  font-family: inherit;
+  font-weight: 500;
+  line-height: 1.1;
+  color: inherit;
+}
+
+// form reset
+fieldset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+legend {
+  margin-bottom: 0;
+}
+
+input {
+  line-height: inherit;
+}
+
+//
+dt,
+dd {
+  padding-left: $ds;
+}
+
+dt {
+  position: relative;
+  font-weight: bold;
+
+  &:before {
+    position: absolute;
+    left: 0;
+    content: '\2022';
+  }
+}
+
+dd {
+  margin-left: 0;
+
+  + dt {
+    margin-top: $ds;
+  }
+}

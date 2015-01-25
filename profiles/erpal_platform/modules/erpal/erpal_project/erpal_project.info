@@ -1,0 +1,19 @@
+name = ERPAL PM
+description = ERPAL PM Module. @TODO: Add more info!
+core = 7.x
+package = ERPAL PM
+
+dependencies[] = erpal_output_ui
+dependencies[] = date_item
+dependencies[] = list
+dependencies[] = options
+dependencies[] = text
+dependencies[] = viewfield
+
+
+; Information added by drush on 2015-01-21
+version = "7.x-3.0-alpha1+27-dev"
+core = "7.x"
+project = "erpal_project"
+datestamp = "1421852633"
+

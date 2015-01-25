@@ -1,0 +1,63 @@
+// file upload styling using custom js function
+.ui-fileupload {
+  $bg-color: $color-bondi-blue;
+
+  @extend %input;
+  display: inline-block;
+  overflow: hidden;
+  padding: 0;
+  margin: {
+    right: 1em;
+    bottom: .25em;
+  }
+  position: relative;
+  vertical-align: top;
+
+  input,
+  ::-webkit-file-upload-button {
+    // web-kit
+    cursor: pointer !important;
+  }
+
+  button {
+    @include button-default($bg-color);
+    margin: {
+      top: -1px;
+      bottom: -1px;
+      left: -1px;
+      right: 0;
+    }
+
+    &:before {
+      @include font-awesome-icon(search);
+    }
+  }
+
+  [type="text"] {
+    margin-left: .25em;
+    border-width: 0;
+    background-color: transparent;
+    color: rgba(#000, .5);
+  }
+
+  [type="file"] {
+    position: absolute;
+    top: 0;
+    left: 0;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    opacity: 0;
+
+    &:hover + div button {
+      @include button-color(darken($bg-color, $button-bg-hover-darken), $hover: false);
+    }
+  }
+
+  // submit button (in case there is no other next to it....)
+  + button:before {
+    @include font-awesome-icon(arrow-up);
+  }
+}

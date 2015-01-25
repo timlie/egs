@@ -1,0 +1,71 @@
+.pane-erpal-anonymous-user-panel {
+  display: inline-block;
+  text-align: left;
+
+  // link in menu-bar
+  .login {
+    color: #fff;
+  }
+
+  .erpaldropdownregion-trigger {
+    line-height: $pageheader-height;
+  }
+
+  .pane-user-login {
+    padding: 0 $ds;
+    line-height: $font-line-height-reset;
+
+    [type="text"],
+    [type="password"] {
+      width: 100%;
+    }
+
+    label {
+      font-size: $font-size-small;
+    }
+
+    ul {
+      padding-left: 0;
+      list-style-type: none;
+      text-align: center;
+      font-size: $font-size-small;
+    }
+
+    li {
+      display: inline-block;
+
+      + li {
+        margin-left: $ds;
+      }
+    }
+  }
+
+  .form-item {
+    margin-bottom: .5em;
+  }
+
+  .form-actions {
+    margin-top: 1.5em;
+    margin-bottom: 0;
+    text-align: center;
+
+    [type="submit"] {
+      @include button-small($color-deep-sea);
+      margin: 0;
+      padding: 0 1em .125em;
+
+      &:before {
+        display: none;
+      }
+    }
+  }
+
+  .erpaldropdownregion-dropdown {
+    width: 250px;
+
+    h2 {
+      margin-top: 0;
+      font-size: $font-size-copy;
+    }
+  }
+}

@@ -1,0 +1,7 @@
+fieldset.collapsible {
+  font-size: $font-size-form;
+
+  html.js & {
+    height: auto;
+  }
+}

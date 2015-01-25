@@ -1,0 +1,13 @@
+.small-list {
+
+  ul {
+    font-size: 12px;
+    padding-left: 16px;
+    list-style-image: none;
+    list-style-type: disc;
+  }
+
+  li + li {
+    margin-top: $ds / 2;
+  }
+}

@@ -1,0 +1,17 @@
+name = ERPAL PM UI
+description = ERPAL PM Module with user interface. @TODO: Add more info!
+core = 7.x
+package = ERPAL PM
+
+dependencies[] = erpal_project
+dependencies[] = erpal_core_ui
+dependencies[] = views
+dependencies[] = ds_extras
+
+
+; Information added by drush on 2015-01-21
+version = "7.x-3.0-alpha1+27-dev"
+core = "7.x"
+project = "erpal_project"
+datestamp = "1421852633"
+

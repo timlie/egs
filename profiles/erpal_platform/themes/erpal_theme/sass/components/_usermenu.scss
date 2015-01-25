@@ -1,0 +1,159 @@
+.pane-system-user-menu {
+  display: inline-block;
+  float: left; // prevent wired bottom-margin
+
+  a:before {
+    @extend %font-awesome;
+    margin-right: 7px;
+    opacity: .3;
+  }
+
+  // icons for items
+  // - logout
+  [href$="/logout"]:before {
+    @include font-awesome-content(sign-out);
+  }
+  // - user
+  [href="/user"]:before {
+    @include font-awesome-content(user);
+  }
+}
+
+.pane-erpal-dropdown-user-menu {
+  display: inline-block;
+}
+
+.erpaldropdownregion-trigger {
+  display: inline-block;
+  position: relative;
+  margin-right: 0 - $ds;
+  padding: 0 $ds;
+  height: $pageheader-height;
+
+  > .pane-custom a {
+    padding: 0 $ds;
+  }
+
+  .pane-user-avatar {
+    $size: 34px;
+    $border-width: 2px;
+
+    position: relative;
+    padding: (($pageheader-height - $size - $border-width) / 2) 0;
+
+    &:before {
+      position: absolute;
+      top: 8px;
+      right: -4px;
+      border: 4px solid transparent;
+      border-bottom-width: 0;
+      border-top-color: #fff;
+      content: '';
+    }
+
+    a {
+      @include single-box-shadow(0, 2px, 7px, 0, rgba(#000, .3));
+      display: block;
+      overflow: hidden;
+      width: $size;
+      height: $size;
+      border: $border-width solid #fff;
+      border-radius: 50%;
+      background-color: #fff;
+    }
+
+    img {
+      float: left;
+    }
+  }
+
+  &:hover {
+    .pane-user-avatar:before {
+      border-top-color: rgba(#fff, .3);
+    }
+  }
+}
+
+.erpaldropdownregion-dropdown {
+  $background-color: $color-mercury;
+  $triangle-size: 8px;
+
+  @include single-box-shadow(0, 3px, 5px, 0, rgba(#000, .3));
+  @include translateY(-10px);
+  @include transition-property(transform, opacity);
+  @include transition-duration(.1s);
+  margin: {
+    top: -5px;
+    right: $ds - 2px;
+  }
+  padding: 8px 0;
+  border: 1px solid rgba(#000, .3);
+  opacity: 0;
+  background-color: $background-color;
+  border-radius: 5px;
+
+  &:before,
+  &:after {
+    position: absolute;
+    right: 17px - $triangle-size;
+    bottom: 100%;
+    pointer-events: none;
+    border: $triangle-size solid transparent;
+    border-top-width: 0;
+    border-bottom-color: $background-color;
+    content: '';
+  }
+
+  &:before {
+    margin-bottom: 1px;
+    border-bottom-color: rgba(#000, .3);
+  }
+
+  &:after {
+    border-bottom-color: $background-color;
+  }
+
+  .js & {
+    background-color: $background-color;
+  }
+
+  .leaf {
+    @include adjust-leading-to(2);
+    list-style: none none;
+
+    + .leaf {
+      margin-left: 0;
+      border-top: 1px solid $color-mercury;
+    }
+  }
+
+  .menu {
+    margin: 0;
+    padding: 0;
+    min-width: 130px;
+    list-style-type: none;
+
+    a {
+      display: block;
+      padding: 6px $ds;
+      font-size: $font-size-minor;
+      background-color: #fff;
+      color: $color-copy;
+      text-decoration: none;
+
+      &:hover {
+        background-color: #efefef;
+      }
+    }
+  }
+
+  .pane-user-menu-welcome {
+    padding: 0 $ds 8px;
+    text-align: center;
+  }
+
+  .erpaldropdownregion-trigger:hover & {
+    @include translateY(0);
+    @include transition-delay(0s);
+  }
+}

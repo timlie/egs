@@ -1,0 +1,32 @@
+// @TODO temporary field styling
+.field-wrap-date,
+.field-wrap-time {
+  $prefix-size: 28px - 2px; // the input-height minus border
+
+  position: relative;
+
+  &:before {
+    display: block;
+    position: absolute;
+    top: 1px; // spare the border
+    bottom: 1px;
+    left: 1px;
+    width: $prefix-size;
+    line-height: $prefix-size;
+    pointer-events: none;
+    text-align: center;
+    background-color: $input-border-color-default;
+  }
+
+  input {
+    padding-left: $prefix-size + 5px;
+  }
+}
+
+.field-wrap-date:before {
+  @include font-awesome-icon(calendar);
+}
+
+.field-wrap-time:before {
+  @include font-awesome-icon(clock-o);
+}

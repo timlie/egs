@@ -1,0 +1,85 @@
+.node-action-links {
+  position: relative;
+
+  a {
+    text-decoration: none;
+  }
+
+  .trigger {
+    display: inline-block;
+    padding: 0 .25em;
+    text-indent: -9999em;
+    cursor: pointer;
+    white-space: nowrap;
+    color: #fff;
+    background-color: $color-button-action;
+
+    &:before {
+      @include font-awesome-icon(cog);
+      position: relative;
+      float: left;
+      top: 1px;
+      text-indent: 0;
+    }
+  }
+
+  ul {
+    @include single-box-shadow(0, 1px, 3px, 0, rgba(#000, .3));
+    display: none;
+    position: absolute;
+    top: 100%;
+    margin: 0;
+    padding: 0;
+    list-style-type: none;
+    font-size: 12px;
+  }
+
+  li {
+    a {
+      display: block;
+      padding: .25em .5em;
+      background-color: #fff;
+      color: $color-copy;
+
+      &:before {
+        @extend %font-awesome;
+        position: relative;
+        top: -1px;
+        margin-right: .5em;
+        opacity: .3;
+      }
+
+      &:hover {
+        background-color: #efefef;
+      }
+    }
+
+    $links: (
+      view: eye,
+      edit: pencil,
+      delete: minus-circle
+    );
+
+    @each $action, $icon in $links {
+      .#{$action}:before {
+        @include font-awesome-content($icon);
+      }
+    }
+
+    + li {
+      border-top: 1px solid $color-mercury;
+    }
+  }
+
+  &:hover {
+    z-index: 5;
+
+    .trigger {
+      background-color: lighten($color-button-action, 10);
+    }
+
+    ul {
+      display: block;
+    }
+  }
+}

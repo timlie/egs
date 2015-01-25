@@ -1,0 +1,19 @@
+form .description {
+  display: inline-block;
+
+  &:before {
+    @include single-transition(opacity, .3s);
+    @include font-awesome-icon(info-circle);
+    opacity: .5;
+    cursor: help;
+  }
+
+  &:hover:before {
+    opacity: 1;
+  }
+
+  // tooltip content
+  > div {
+    display: none;
+  }
+}

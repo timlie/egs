@@ -1,0 +1,61 @@
+.tooltipster-default {
+  @include single-box-shadow(0, 2px, 8px, 0, rgba(#000, .3));
+  background: $tooltip-background-color;
+  color: #fff;
+  border-radius: 5px;
+
+  .tooltipster-content {
+    overflow: hidden;
+    padding: 3px 8px;
+    line-height: 16px;
+    font-size: $font-size-small;
+  }
+}
+
+.tooltipster-base {
+  position: absolute;
+  z-index: 100;
+  overflow: visible;
+  left: 0;
+  top: 0;
+  width: auto;
+  padding: 0;
+  line-height: 0;
+  font-size: 0;
+  pointer-events: none;
+
+  .tooltipster-content {
+    overflow: hidden;
+  }
+}
+
+.tooltipster-arrow {
+  display: block;
+  position: absolute;
+  z-index: -1;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  text-align: center;
+
+  span {
+    @extend %tooltip-arrow;
+  }
+
+
+  &-right span {
+    display: none;
+  }
+}
+
+.tooltipster-fade {
+  @include transition-property(opacity, transform);
+  @include translateY(-10px);
+  opacity: 0;
+}
+
+.tooltipster-fade-show {
+  @include translateY(0);
+  opacity: 1;
+}

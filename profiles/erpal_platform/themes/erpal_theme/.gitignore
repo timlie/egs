@@ -1,0 +1,16 @@
+/.sass-cache/
+
+/compass_app_log.txt
+
+.bundle/
+vendor/
+
+/node_modules/
+
+/sass-doc/
+
+/scss-lint-report.xml
+
+/npm-debug.log
+
+.DS_Store

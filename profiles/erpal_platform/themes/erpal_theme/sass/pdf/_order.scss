@@ -1,0 +1,20 @@
+.order-header {
+  @extend %pdf-header;
+}
+
+.order-footer {
+  @extend %pdf-footer;
+}
+
+.order-header-date {
+  @extend %pdf-header-date;
+}
+
+.order-number {
+  @extend %pdf-node-number;
+  padding-bottom: 0;
+}
+
+.order-text {
+  margin-top: 2em;
+}

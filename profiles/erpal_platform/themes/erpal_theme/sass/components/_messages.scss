@@ -1,0 +1,120 @@
+// page messages wrapper
+.pane-page-messages {
+  margin-bottom: $extended-spacing;
+}
+
+.messagewrapper .messages,
+.messages {
+  $side-width: 22px;
+
+  @include border-radius(0);
+  position: relative;
+  margin: 0;
+  padding: $ds $ds $ds ($side-width + $ds);
+  border-width: 0;
+  color: $color-copy;
+  background: none;
+
+  &.messages {
+    //to override timed_messages themeing
+    border: none;
+  }
+
+  &:before,
+  &:after {
+    left: 0;
+    position: absolute;
+  }
+
+  // background
+  &:before {
+    display: block;
+    bottom: 0;
+    top: 0;
+    width: $side-width;
+    content: '';
+  }
+
+  // icon
+  &:after {
+    @include translateY(-50%);
+    top: 50%;
+    width: $side-width;
+    text-align: center;
+    color: #fff;
+  }
+
+  // TODO: close-icon
+
+  // individual styles
+  // success (green)
+  &.status,
+  &.messages--status {
+    @include message($color-deep-sea, check-circle);
+  }
+
+  // error (red)
+  &.error,
+  &.messages--error {
+    @include message($color-monza, exclamation-circle);
+  }
+
+  // warn (orange)
+  &.warning {
+    @include message($color-yellow-orange, exclamation-triangle);
+  }
+
+  // info (blue)
+  /*
+  &. {
+    @include message($color-orient, info-circle);
+  }
+  */
+
+  + .messages {
+    margin-top: $ds;
+  }
+}
+
+.messagewrapper {
+  .showlink {
+    // icon
+    left: -9px;
+    width: 20px;
+    height: 20px;
+    top: 50%;
+    border-radius: 100%;
+    background: none;
+    transform: translateY(-50%) translateX(50%);
+
+    &:after {
+      @include translateY(-50%);
+      position: absolute;
+      top: 50%;
+      left: 0;
+      width: 22px;
+      text-align: center;
+      text-indent: -2px;
+      color: #fff;
+    }
+
+    // success (green)
+    &.status {
+      @include message($color-deep-sea, check-circle);
+      background-color: $color-deep-sea;
+    }
+
+    // error (red)
+    &.error {
+      @include message($color-monza, exclamation-circle);
+      background-color: $color-monza;
+    }
+
+    // warn (orange)
+    &.warning {
+      @include message($color-yellow-orange, exclamation-triangle);
+      background-color: $color-yellow-orange;
+    }
+
+  }
+}

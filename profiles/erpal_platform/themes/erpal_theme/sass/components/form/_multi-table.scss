@@ -1,0 +1,27 @@
+%field-multiple-table {
+  margin-bottom: $ds;
+  width: 100%;
+
+  tbody {
+    > tr {
+      @extend %row-stripe;
+    }
+
+    tr + tr {
+      border-top: 2px solid #fff;
+    }
+
+    td {
+      padding: 3px $ds 6px;
+    }
+
+    label {
+      margin-bottom: 1px;
+      font-size: $font-size-small;
+    }
+  }
+}
+
+.field-multiple-table {
+  @extend %field-multiple-table;
+}

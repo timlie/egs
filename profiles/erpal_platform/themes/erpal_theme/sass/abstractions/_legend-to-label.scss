@@ -1,0 +1,9 @@
+/**
+  make a fieldset legend appera like an labelfield to keep a unified look
+  */
+%legend-to-label {
+  @extend %label;
+  margin-bottom: $ds;
+  border-bottom: none;
+  font-size: $font-size-minor;
+}

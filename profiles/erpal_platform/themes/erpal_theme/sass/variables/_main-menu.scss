@@ -1,0 +1,31 @@
+/** */
+$menu-width: 190px;
+
+/** */
+$menu-collapsed-width: 35px;
+
+/** */
+$menu-link-height: 30px;
+
+/** */
+$menu-link-color: #fff;
+
+/** spacing between icon and text on main-menu */
+$menu-icon-right-spacing: $ds;
+
+/** menu icon map */
+$menu-link-icons: (
+  contacts:   user,
+  activities: comments,
+  quotes:     file-text,
+  orders:     shopping-cart,
+  invoices:   usd,
+  revenue:    money,
+  products:   ticket,
+  projects:   tasks,
+  dashboard:  tachometer,
+  reports:    bar-chart
+);
+
+/** */
+$menu-transition-duration: .5s;

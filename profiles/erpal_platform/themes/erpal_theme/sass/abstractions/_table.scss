@@ -1,0 +1,9 @@
+%row-stripe {
+  &:nth-child(odd) {
+    background-color: $color-table-odd;
+  }
+
+  &:nth-child(even) {
+    background-color: $color-table-even;
+  }
+}

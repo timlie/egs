@@ -1,0 +1,419 @@
+/** default element spacing */
+/**
+  default-spacing shorthand
+  @alias $default-spacing
+  */
+/** margin between different content-types or padding inside the main-content */
+/** larger spacing for content-seperation */
+/** */
+/** */
+/* --- color definitions --- */
+/**
+ @group color
+ @link http://chir.ag/projects/name-that-color/
+ */
+/** @group color */
+/**
+  also used for #ededed
+  @group color
+  */
+/** @group color */
+/** @group color */
+/** @group color */
+/** @group color */
+/** @group color */
+/** @group color */
+/** @group color */
+/** @group color */
+/** @group color */
+/** @group color */
+/** @group color */
+/** @group color */
+/** @group color */
+/* --- general use-cases --- */
+/** @group color */
+/** @group color */
+/** @group color */
+/** @group color */
+/** @group color */
+/** @group color */
+/* --- typo colors --- */
+/**
+  default copy color
+  @group color
+  */
+/**
+  default link color
+  @group color
+  */
+/* --- border colors --- */
+/** @group color */
+/** @group color */
+/**
+  icon-font-name - `<3` fa!
+  @link http://fortawesome.github.io/Font-Awesome/
+  */
+/**
+  icon trivial-name / code map (state 10.09.2014)
+  @link http://fortawesome.github.io/Font-Awesome/
+  */
+/** */
+/** */
+/** */
+/** */
+/** spacing between icon and text on main-menu */
+/** menu icon map */
+/** */
+/** @group pdf */
+/** @group pdf */
+/** @group pdf */
+/** @group pdf */
+/**
+  default / most-common font-size
+  @group typo
+  */
+/**
+  base line-height
+  @group typo
+  */
+/**
+  @group typo
+  */
+/**
+  main / default-font - sans-serif
+  @group typo
+  */
+/**
+  in case we need a serif font
+  @group typo
+  */
+/**
+  button font
+  @group typo
+  @requires $font-family-default
+  */
+/**
+  alias for $base-font-size
+  @group typo
+  @requires $base-font-size
+  */
+/** @group typo */
+/** @group typo */
+/** @group typo */
+/** @group typo */
+/** @group typo */
+/** @group typo */
+/**
+  default button color
+  @group button
+  */
+/**
+  value to darken button on hover
+  @group button
+  @link http://sass-lang.com/documentation/Sass/Script/Functions.html#darken-instance_method
+  */
+/**
+  sets button-background-color only. if hover is false, bg-color will not be overwritten;
+  if a color is passed the it will be set without manipulation.
+  @group button
+  @param {Color} $bg-color ($button-bg-color-default) - background-color
+  @param {Boolean|Color} $hover (true) - background-color
+  @param {Int} $hover-darken ($button-bg-hover-darken) - darken-value for button-hover
+  @requires $button-bg-color-default
+  @requires $button-bg-hover-darken
+  @example
+  .foo {
+    @include button-color(#f00);
+    // background-color: #f00;
+    // &:hover {
+    //   background-color: #d9d9d9;
+    // }
+  }
+  @example
+  .foo {
+    @include button-color(#f00, false);
+    // background-color: #f00;
+  }
+  @example
+  .foo[type="disabled"] {
+    @include button-color(#f00, #f00);
+    // background-color: #f00;
+    // &:hover {
+    //   background-color: #0f0;
+    // }
+  }
+  */
+/**
+  sets button-basic-settings and background-color
+  @group button
+  @param {Color} $bg-color ($button-bg-color-default) - background-color
+  @requires %button-default
+  @requires {mixin} button-color
+  @requires $button-bg-color-default
+  */
+/**
+  sets button-basic-settings and background-color
+  @group button
+  @param {Color} $bg-color ($button-bg-color-default) - background-color
+  @requires %button-small
+  @requires {mixin} button-color
+  @requires $button-bg-color-default
+  */
+/**
+  reduces the a button to only display an icon
+  @group button
+  @param {String} $icon - icon trivial name
+  @requires %button-icon-only-default
+  */
+/**
+  basic button
+  @group button
+  */
+/**
+  default button setup
+  @group button
+  @requires %button-basic
+  */
+/**
+  small button setup
+  @group button
+  @requires %button-basic
+  @requires {mixin} font-size
+  */
+/**
+  button width no text, just icon
+  @group button
+  */
+/**
+  button width no text, just icon and smaller
+  @group button
+  @requires $font-size-small-button
+  */
+/**
+ * :after clearfix, no hidden overflow
+ * @link https://www.drupal.org/node/778998
+ */
+/**
+  sets content-attribute by given icon-trivial-name
+  @param {String} $name - icon-trivial-name
+  @requires $font-awesome-icons
+  @example
+  .foo:after {
+    @include font-awesome-content(music);
+    // content: "\e601";
+  }
+  */
+/**
+  outputs content by given icon-trivial-name and font-family
+  @param {String} $name - icon-trivial-name
+  @requires {mixin} font-awesome-content
+  @requires %font-awesome
+  */
+/**
+  better font rendering
+  @requires $font-family-awesome
+  */
+/** */
+/** */
+/** */
+/** */
+/**
+  default input styling
+  @requires %input-border-default
+  */
+/**
+  make a fieldset legend appera like an labelfield to keep a unified look
+  */
+/** */
+/** */
+/**
+  setting the background-color and side-background-color for messages
+  @param {Color} $color - desired side-color and background-color (with opacity)
+  */
+/**
+  mixin to set the individual background-`$color` and `$icon` for the messages
+  @param {Color} $color - desired side-color and background-color (with opacity)
+  @param {String} $icon - icon trivial name to be displayed
+  @requires {mixin} message-color
+  @requires {mixin} font-awesome-icon
+  */
+/**
+  @group pdf
+  @requires $font-size-minor
+*/
+@media -sass-debug-info{filename{font-family:file\:\/\/\/Users\/dpe\/Webseiten\/erpal-platform-dev\/sites\/all\/themes\/erpal_theme\/sass\/abstractions\/_pdf\.scss}line{font-family:\000035}}
+.invoice-header, .order-header {
+  font-size: 14px;
+  color: #646464;
+  text-align: right; }
+
+/** @group pdf */
+@media -sass-debug-info{filename{font-family:file\:\/\/\/Users\/dpe\/Webseiten\/erpal-platform-dev\/sites\/all\/themes\/erpal_theme\/sass\/abstractions\/_pdf\.scss}line{font-family:\0000312}}
+.invoice-footer, .order-footer {
+  position: absolute;
+  bottom: 0;
+  padding-top: 4px;
+  border-top: 1px solid #646464;
+  width: 100%;
+  font-size: 14px;
+  text-align: center;
+  color: #646464; }
+@media -sass-debug-info{filename{font-family:file\:\/\/\/Users\/dpe\/Webseiten\/erpal-platform-dev\/sites\/all\/themes\/erpal_theme\/sass\/abstractions\/_pdf\.scss}line{font-family:\0000322}}
+  .html .invoice-footer, .html .order-footer {
+    position: relative;
+    margin-top: 75px; }
+
+/** @group pdf */
+@media -sass-debug-info{filename{font-family:file\:\/\/\/Users\/dpe\/Webseiten\/erpal-platform-dev\/sites\/all\/themes\/erpal_theme\/sass\/abstractions\/_pdf\.scss}line{font-family:\0000329}}
+.invoice-header-date, .order-header-date {
+  margin-top: 25px;
+  margin-left: 550px;
+  text-align: right; }
+
+/** @group pdf */
+@media -sass-debug-info{filename{font-family:file\:\/\/\/Users\/dpe\/Webseiten\/erpal-platform-dev\/sites\/all\/themes\/erpal_theme\/sass\/abstractions\/_pdf\.scss}line{font-family:\0000338}}
+.invoice-number, .order-number {
+  position: relative;
+  top: 0;
+  padding: 15px 0; }
+
+/** @access private */
+/** @access private */
+/** */
+/** */
+@media -sass-debug-info{filename{font-family:file\:\/\/\/Users\/dpe\/Webseiten\/erpal-platform-dev\/sites\/all\/themes\/erpal_theme\/sass\/pdf\/_base\.scss}line{font-family:\000033}}
+body {
+  font-family: Arial, sans-serif;
+  font-size: 16px; }
+
+@media -sass-debug-info{filename{font-family:file\:\/\/\/Users\/dpe\/Webseiten\/erpal-platform-dev\/sites\/all\/themes\/erpal_theme\/sass\/pdf\/_base\.scss}line{font-family:\000038}}
+.header {
+  width: 100%;
+  height: 100px; }
+@media -sass-debug-info{filename{font-family:file\:\/\/\/Users\/dpe\/Webseiten\/erpal-platform-dev\/sites\/all\/themes\/erpal_theme\/sass\/pdf\/_base\.scss}line{font-family:\0000312}}
+  .header img {
+    width: 88px;
+    position: absolute; }
+
+@media -sass-debug-info{filename{font-family:file\:\/\/\/Users\/dpe\/Webseiten\/erpal-platform-dev\/sites\/all\/themes\/erpal_theme\/sass\/pdf\/_base\.scss}line{font-family:\0000318}}
+.text {
+  position: absolute;
+  top: 300px; }
+
+@media -sass-debug-info{filename{font-family:file\:\/\/\/Users\/dpe\/Webseiten\/erpal-platform-dev\/sites\/all\/themes\/erpal_theme\/sass\/pdf\/_base\.scss}line{font-family:\0000324}}
+.customer .field-label,
+.customer .field__label {
+  display: none; }
+@media -sass-debug-info{filename{font-family:file\:\/\/\/Users\/dpe\/Webseiten\/erpal-platform-dev\/sites\/all\/themes\/erpal_theme\/sass\/pdf\/_base\.scss}line{font-family:\0000329}}
+.customer .field-name-field-customer-lastname,
+.customer .field--name-field-customer-lastname {
+  display: none; }
+
+@media -sass-debug-info{filename{font-family:file\:\/\/\/Users\/dpe\/Webseiten\/erpal-platform-dev\/sites\/all\/themes\/erpal_theme\/sass\/pdf\/_base\.scss}line{font-family:\0000335}}
+.line-items {
+  margin-top: 75px; }
+
+@media -sass-debug-info{filename{font-family:file\:\/\/\/Users\/dpe\/Webseiten\/erpal-platform-dev\/sites\/all\/themes\/erpal_theme\/sass\/pdf\/_base\.scss}line{font-family:\0000339}}
+.commerce-price-formatted-components,
+.views-table {
+  font-size: .8em; }
+@media -sass-debug-info{filename{font-family:file\:\/\/\/Users\/dpe\/Webseiten\/erpal-platform-dev\/sites\/all\/themes\/erpal_theme\/sass\/pdf\/_base\.scss}line{font-family:\0000343}}
+  .commerce-price-formatted-components table,
+  .views-table table {
+    font-size: 1em; }
+
+@media -sass-debug-info{filename{font-family:file\:\/\/\/Users\/dpe\/Webseiten\/erpal-platform-dev\/sites\/all\/themes\/erpal_theme\/sass\/pdf\/_base\.scss}line{font-family:\0000349}}
+.commerce-price-formatted-components tr:first-child td {
+  padding-top: .5em; }
+
+@media -sass-debug-info{filename{font-family:file\:\/\/\/Users\/dpe\/Webseiten\/erpal-platform-dev\/sites\/all\/themes\/erpal_theme\/sass\/pdf\/_base\.scss}line{font-family:\0000354}}
+.views-table {
+  border-spacing: 0; }
+@media -sass-debug-info{filename{font-family:file\:\/\/\/Users\/dpe\/Webseiten\/erpal-platform-dev\/sites\/all\/themes\/erpal_theme\/sass\/pdf\/_base\.scss}line{font-family:\0000357}}
+  .views-table td,
+  .views-table th {
+    padding: .4em 0; }
+@media -sass-debug-info{filename{font-family:file\:\/\/\/Users\/dpe\/Webseiten\/erpal-platform-dev\/sites\/all\/themes\/erpal_theme\/sass\/pdf\/_base\.scss}line{font-family:\0000362}}
+  .views-table thead {
+    border-bottom: 2px solid #000 !important; }
+@media -sass-debug-info{filename{font-family:file\:\/\/\/Users\/dpe\/Webseiten\/erpal-platform-dev\/sites\/all\/themes\/erpal_theme\/sass\/pdf\/_base\.scss}line{font-family:\0000365}}
+    .views-table thead th {
+      vertical-align: top; }
+@media -sass-debug-info{filename{font-family:file\:\/\/\/Users\/dpe\/Webseiten\/erpal-platform-dev\/sites\/all\/themes\/erpal_theme\/sass\/pdf\/_base\.scss}line{font-family:\0000371}}
+  .views-table tbody td {
+    border-bottom: 1px solid #ddd; }
+@media -sass-debug-info{filename{font-family:file\:\/\/\/Users\/dpe\/Webseiten\/erpal-platform-dev\/sites\/all\/themes\/erpal_theme\/sass\/pdf\/_base\.scss}line{font-family:\0000376}}
+  .views-table .views-row-last td {
+    border-bottom-width: 0; }
+
+@media -sass-debug-info{filename{font-family:file\:\/\/\/Users\/dpe\/Webseiten\/erpal-platform-dev\/sites\/all\/themes\/erpal_theme\/sass\/pdf\/_base\.scss}line{font-family:\0000382}}
+.view-commerce-line-item-table table {
+  width: 100%;
+  line-height: 1.2em;
+  border-collapse: collapse; }
+@media -sass-debug-info{filename{font-family:file\:\/\/\/Users\/dpe\/Webseiten\/erpal-platform-dev\/sites\/all\/themes\/erpal_theme\/sass\/pdf\/_base\.scss}line{font-family:\0000388}}
+.view-commerce-line-item-table th {
+  text-align: right; }
+@media -sass-debug-info{filename{font-family:file\:\/\/\/Users\/dpe\/Webseiten\/erpal-platform-dev\/sites\/all\/themes\/erpal_theme\/sass\/pdf\/_base\.scss}line{font-family:\0000392}}
+.view-commerce-line-item-table td {
+  text-align: right;
+  height: 30px;
+  border-bottom-width: 0; }
+@media -sass-debug-info{filename{font-family:file\:\/\/\/Users\/dpe\/Webseiten\/erpal-platform-dev\/sites\/all\/themes\/erpal_theme\/sass\/pdf\/_base\.scss}line{font-family:\0000398}}
+.view-commerce-line-item-table .views-field-commerce-total {
+  text-align: right;
+  padding-right: 5px;
+  width: 200px; }
+@media -sass-debug-info{filename{font-family:file\:\/\/\/Users\/dpe\/Webseiten\/erpal-platform-dev\/sites\/all\/themes\/erpal_theme\/sass\/pdf\/_base\.scss}line{font-family:\00003104}}
+.view-commerce-line-item-table .views-field-line-item-title {
+  text-align: left;
+  width: 300px; }
+
+@media -sass-debug-info{filename{font-family:file\:\/\/\/Users\/dpe\/Webseiten\/erpal-platform-dev\/sites\/all\/themes\/erpal_theme\/sass\/pdf\/_base\.scss}line{font-family:\00003110}}
+.order-total table {
+  width: 100%;
+  border-top: 2px solid #000;
+  font-weight: bold; }
+
+@media -sass-debug-info{filename{font-family:file\:\/\/\/Users\/dpe\/Webseiten\/erpal-platform-dev\/sites\/all\/themes\/erpal_theme\/sass\/pdf\/_base\.scss}line{font-family:\00003116}}
+.order-id {
+  position: absolute;
+  top: 370px; }
+
+@media -sass-debug-info{filename{font-family:file\:\/\/\/Users\/dpe\/Webseiten\/erpal-platform-dev\/sites\/all\/themes\/erpal_theme\/sass\/pdf\/_base\.scss}line{font-family:\00003122}}
+td.component-title {
+  text-align: right; }
+@media -sass-debug-info{filename{font-family:file\:\/\/\/Users\/dpe\/Webseiten\/erpal-platform-dev\/sites\/all\/themes\/erpal_theme\/sass\/pdf\/_base\.scss}line{font-family:\00003126}}
+td.component-total {
+  text-align: right;
+  width: 200px; }
+
+@media -sass-debug-info{filename{font-family:file\:\/\/\/Users\/dpe\/Webseiten\/erpal-platform-dev\/sites\/all\/themes\/erpal_theme\/sass\/pdf\/_base\.scss}line{font-family:\00003132}}
+.contextual-links-wrapper {
+  display: none; }
+
+@media -sass-debug-info{filename{font-family:file\:\/\/\/Users\/dpe\/Webseiten\/erpal-platform-dev\/sites\/all\/themes\/erpal_theme\/sass\/pdf\/_invoice\.scss}line{font-family:\0000317}}
+.invoice-text {
+  margin-top: 50px; }
+
+@media -sass-debug-info{filename{font-family:file\:\/\/\/Users\/dpe\/Webseiten\/erpal-platform-dev\/sites\/all\/themes\/erpal_theme\/sass\/pdf\/_invoice\.scss}line{font-family:\0000321}}
+.invoice-canceled .order-total table {
+  border: 2px solid #000;
+  margin-top: 100px; }
+
+@media -sass-debug-info{filename{font-family:file\:\/\/\/Users\/dpe\/Webseiten\/erpal-platform-dev\/sites\/all\/themes\/erpal_theme\/sass\/pdf\/_invoice\.scss}line{font-family:\0000327}}
+.line-items-view table {
+  width: 100%; }
+@media -sass-debug-info{filename{font-family:file\:\/\/\/Users\/dpe\/Webseiten\/erpal-platform-dev\/sites\/all\/themes\/erpal_theme\/sass\/pdf\/_invoice\.scss}line{font-family:\0000331}}
+.line-items-view th {
+  text-align: left; }
+
+@media -sass-debug-info{filename{font-family:file\:\/\/\/Users\/dpe\/Webseiten\/erpal-platform-dev\/sites\/all\/themes\/erpal_theme\/sass\/pdf\/_order\.scss}line{font-family:\0000313}}
+.order-number {
+  padding-bottom: 0; }
+
+@media -sass-debug-info{filename{font-family:file\:\/\/\/Users\/dpe\/Webseiten\/erpal-platform-dev\/sites\/all\/themes\/erpal_theme\/sass\/pdf\/_order\.scss}line{font-family:\0000318}}
+.order-text {
+  margin-top: 2em; }
+
+/*# sourceMappingURL=erpal-theme.pdf.css.map */

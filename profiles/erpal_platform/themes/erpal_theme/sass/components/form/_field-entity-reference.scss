@@ -1,0 +1,97 @@
+// field wrapper
+.field-type-entityreference {
+  margin-bottom: $inner-spacing;
+
+  legend {
+    @extend %legend-to-label;
+  }
+
+  // @TODO: fix for acivity > participants
+  &.field-name-field-activity-participants {
+    .form-item > .field-label {
+      display: inline-block;
+      float: left;
+      margin-right: 3px;
+    }
+
+    .dialog-links {
+      margin-top: 4px;
+
+      ul {
+        margin: 0;
+      }
+    }
+  }
+}
+
+// table
+.ief-entity-table {
+  @extend %field-multiple-table;
+  @extend %ief-buttons;
+
+  // in this theme the label should be displayed on top of each row
+  // also operations don't need a label
+  thead {
+    display: none;
+  }
+
+  td {
+    position: relative; // needed for operations/actions
+    padding: 6px $ds;
+  }
+
+  // ajax form
+  .form-wrapper {
+    padding: 0;
+    border-bottom: 0;
+
+    legend {
+      margin-bottom: 5px;
+    }
+  }
+
+  + div button {
+    @extend %form-add-button;
+  }
+}
+
+// actions
+.ief-entity-operations {
+  position: absolute;
+  right: $ds;
+  bottom: 6px;
+  width: 26px;
+  text-align: right;
+
+  button {
+    @extend %button-icon-only-small;
+    @include button-icon-only(times); // default is remove icon
+    display: inline-block;
+    margin: {
+      top: 3px;
+      right: 0;
+    }
+
+    &:hover {
+      background-color: $color-button-delete;
+    }
+
+    &[id*="entity-edit"] {
+      &:hover {
+        background-color: $color-link;
+      }
+
+      &:before {
+        @include font-awesome-icon(pencil);
+      }
+    }
+  }
+
+  // ajax progress indicator
+  .ajax-progress {
+    position: absolute;
+    right: 30px;
+    margin-top: 6px;
+    white-space: nowrap;
+  }
+}

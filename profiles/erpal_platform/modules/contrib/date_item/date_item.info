@@ -1,0 +1,23 @@
+name = Date Item
+description = Provides functionality to define dates as an entities.
+package = Date/Time
+core = 7.x
+
+dependencies[] = date_popup
+dependencies[] = date_repeat_field
+dependencies[] = entity
+dependencies[] = entityreference
+dependencies[] = inline_entity_form
+
+; Dynamic-loading code registry.
+files[] = includes/controller.inc
+
+; Views Handler.
+files[] = views/date_item_views_handler_field_entity.inc
+
+
+; Information added by drush on 2015-01-21
+version = ""
+project = "date_item"
+datestamp = "1421852656"
+

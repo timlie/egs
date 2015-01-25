@@ -1,0 +1,31 @@
+.pane-page-breadcrumb {
+  margin: 0 (0 - $inner-spacing);
+}
+
+.breadcrumb {
+  $height: 25px;
+
+  margin-bottom: 0 0 20px;
+  padding: 0 $inner-spacing;
+  height: $height;
+  list-style: none;
+  background-color: rgba(#000, .1);
+
+  li {
+    display: inline-block;
+    line-height: $height;
+    font-size: $font-size-small;
+    color: $color-dove-gray;
+
+    + li:before {
+      padding: 0 5px;
+      content: '\00BB';
+      color: $color-dove-gray;
+    }
+  }
+
+  a {
+    display: inline-block;
+    line-height: $height;
+  }
+}

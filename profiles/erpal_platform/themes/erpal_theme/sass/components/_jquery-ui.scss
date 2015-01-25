@@ -1,0 +1,4 @@
+.ui-widget-content a {
+  @extend %link-text-deco;
+  color: $color-link;
+}

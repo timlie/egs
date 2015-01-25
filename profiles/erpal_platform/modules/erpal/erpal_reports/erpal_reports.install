@@ -1,0 +1,57 @@
+<?php
+
+/**
+ * @file
+ * Install, update, and uninstall functions for the ERPAL Report module.
+ */
+
+/**
+ * Implements hook_install().
+ */
+function erpal_reports_install() {
+  $t = get_t();
+
+  // Added auto generation resources for such bundles.
+  $bundles = variable_get('erpal_resource_bundles', array());
+  $bundles['crm_core_activity' . ERPAL_RESOURCE_DELIMITER . 'sales_process'] = 'crm_core_activity' . ERPAL_RESOURCE_DELIMITER . 'sales_process';
+  $bundles['node' . ERPAL_RESOURCE_DELIMITER . 'erpal_project'] = 'node' . ERPAL_RESOURCE_DELIMITER . 'erpal_project';
+  $bundles['node' . ERPAL_RESOURCE_DELIMITER . 'erpal_task'] = 'node' . ERPAL_RESOURCE_DELIMITER . 'erpal_task';
+  variable_set('erpal_resource_bundles', $bundles);
+
+  // Create a Output bundle for tracking own expense.
+  $output = entity_create('erpal_output_type', array(
+    'type' => 'expense',
+    'label' => $t('Expense'),
+    'description' => $t('Output bundle for tracking own expense.'),
+  ));
+  variable_set('output_' . $output->type, 'money');
+
+  erpal_output_type_save($output);
+
+  // Create a Output bundle for tracking Revenue.
+  $output = entity_create('erpal_output_type', array(
+    'type' => 'revenue',
+    'label' => $t('Revenue'),
+    'description' => $t('Output bundle for tracking Revenue.'),
+  ));
+  variable_set('output_' . $output->type, 'money');
+
+  erpal_output_type_save($output);
+
+  variable_set('date_format_' . ERPAL_REPORTS_DATE_TYPE_YEAR, ERPAL_REPORTS_DATE_FORMAT_YEAR);
+  variable_set('date_format_' . ERPAL_REPORTS_DATE_TYPE_MONTH, ERPAL_REPORTS_DATE_FORMAT_MONTH);
+
+  // Set default commerce_reports_tax status.
+  variable_set('commerce_reports_tax_order_generate_statuses',
+    array('canceled', 'pending', 'processing', 'completed', 'invoiced', 'feedback', 'declined', 'accepted', 'paid'));
+  variable_set('commerce_reports_tax_order_statuses',
+    array('canceled', 'pending', 'processing', 'completed', 'invoiced', 'feedback', 'declined', 'accepted', 'paid'));
+}
+
+/**
+ * Implements hook_install().
+ */
+function erpal_reports_uninstall() {
+  variable_del('date_format_' . ERPAL_REPORTS_DATE_TYPE_YEAR);
+  variable_del('date_format_' . ERPAL_REPORTS_DATE_TYPE_MONTH);
+}

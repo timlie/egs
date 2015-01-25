@@ -1,0 +1,224 @@
+<?php
+
+/**
+ * @file
+ * Module file for Date Item module.
+ */
+
+/**
+ * Path to Date item types admin page.
+ */
+define('DATE_ITEM_ADMIN_PATH', 'admin/structure/date-item-types');
+
+/**
+ * Includes files with date item functions.
+ */
+date_item_include('date_item.api');
+
+/**
+ * Includes files with date item type functions.
+ */
+date_item_include('date_item_type.api');
+
+/**
+ * Includes theme functions.
+ */
+date_item_include('theme');
+
+
+/**
+ * Implements hook_entity_info().
+ */
+function date_item_entity_info() {
+
+  // Describes date item entity.
+  $return = _date_item_entity_info();
+
+  // Describes date item type entity.
+  $return += _date_item_type_entity_info();
+
+  return $return;
+}
+
+/**
+ * Implements hook_entity_info_alter().
+ */
+function date_item_entity_info_alter(&$entity_info) {
+
+  // Attach bundles to the date item entity.
+  _date_item_entity_info_alter($entity_info);
+}
+
+/**
+ * Implements hook_permission().
+ */
+function date_item_permission() {
+
+  return array(
+    'administer date item types' => array(
+      'title' => t('Administer date item types'),
+    ),
+  );
+}
+
+/**
+ * Implements hook_entity_insert().
+ *
+ * Update related entity id in date item entity.
+ */
+function date_item_entity_insert($entity, $type) {
+
+  date_item_entity_update($entity, $type);
+}
+
+/**
+ * Implements hook_entity_update().
+ *
+ * Update related entity id in date item entity.
+ */
+function date_item_entity_update($entity, $type) {
+
+  // If needs to update related entity id.
+  if (!empty($entity->date_item_update_field)) {
+
+    // Get date item id, stored in current entity.
+    // @see: DateItemInlineEntityFormController::entityFormSubmit().
+    $date_item_field = $entity->date_item_update_field;
+    $wrapper = entity_metadata_wrapper($type, $entity);
+    $date_item_id = $wrapper->{$date_item_field}->raw();
+
+    // Update related entity id in date item entity.
+    date_item_update_entity_id($date_item_id, $type, entity_id($type, $entity));
+  }
+}
+
+/**
+ * Implements hook_field_widget_form_alter().
+ *
+ * Renames field labels inside date item to parent field label and Outputs entity's fields without fieldset.
+ */
+function date_item_field_widget_form_alter(&$element, &$form_state, $context) {
+
+  if ($context['field']['type'] == 'entityreference' &&
+    $context['field']['settings']['target_type'] == 'date_item' &&
+    $context['instance']['widget']['type'] == 'inline_entity_form_single') {
+
+    // Rename field labels inside date item to parent field label.
+    $children = element_children($element['form']);
+    if (!empty($children)) {
+      foreach ($children as $child) {
+
+        $lang = !empty($element['form'][$child]['#language']) ? $element['form'][$child]['#language'] : LANGUAGE_NONE;
+
+        if (!empty($element['form'][$child][$lang])) {
+
+          foreach ($element['form'][$child][$lang] as &$field) {
+
+            if (is_array($field) && !empty($field['#title'])) {
+              $field['#title'] = $element['#title'];
+            }
+          }
+        }
+      }
+    }
+
+    // Output entity's fields without fieldset.
+    $element['#type'] = 'container';
+  }
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ *
+ * Disables possibility to choose more than one date item bundle at entityreference field edit form.
+ */
+function date_item_form_field_ui_field_edit_form_alter(&$form, &$form_state, $form_id) {
+  if (!empty($form['#field']['type']) && $form['#field']['type'] == 'entityreference') {
+
+    $form['field']['settings']['#process'][] = '_date_item_entityreference_field_settings_process';
+  }
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ *
+ * Disables possibility to choose more than one date item bundle at entityreference field edit form.
+ */
+function date_item_form_field_ui_field_settings_form_alter(&$form, &$form_state, $form_id) {
+  if (!empty($form['field']['type']['#value']) && $form['field']['type']['#value'] == 'entityreference') {
+
+    $form['field']['settings']['#process'][] = '_date_item_entityreference_field_settings_process';
+  }
+}
+
+/**
+ * Disables possibility to choose more than one date item bundle at entityreference field edit form.
+ */
+function _date_item_entityreference_field_settings_process($form, $form_state) {
+  $default_values = !empty($form['target_type']['#default_value']) && $form['target_type']['#default_value'] == 'date_item' &&
+    !empty($form['handler']['handler']['#default_value']) && $form['handler']['handler']['#default_value'] == 'base';
+
+  $inputed_values = !empty($form_state['input']['field']['settings']['target_type']) &&
+    $form_state['input']['field']['settings']['target_type'] == 'date_item' &&
+    !empty($form_state['input']['field']['settings']['handler']) &&
+    $form_state['input']['field']['settings']['handler'] == 'base';
+
+  if ((!empty($form_state['input']) && $inputed_values) || $default_values) {
+
+    // Make target bundles element as radios not as checkboxes.
+    $form['handler']['handler_settings']['target_bundles']['#type'] = 'radios';
+    $form['handler']['handler_settings']['target_bundles']['#required'] = TRUE;
+    $form['handler']['handler_settings']['target_bundles']['#element_validate'] = array('_date_item_entityreference_element_validate_filter');
+    $form['handler']['handler_settings']['target_bundles']['#description'] = t('The Type of the Date item that can be referenced.');
+    $form['handler']['handler_settings']['target_bundles']['#default_value'] = array_shift($form['handler']['handler_settings']['target_bundles']['#default_value']);
+  }
+
+  return $form;
+}
+
+/**
+ * Validate Target bundles element.
+ */
+function _date_item_entityreference_element_validate_filter(&$element, &$form_state) {
+  $element['#value'] = array($element['#value']);
+  form_set_value($element, $element['#value'], $form_state);
+}
+
+/**
+ * Wrapper for loading .inc files.
+ *
+ * This function is helpful for including .inc files. The
+ * general case is including functionality like this:
+ *
+ * @code
+ * date_item_include('admin');
+ * @endcode
+ *
+ * @param $filename
+ *   The base file name to be included.
+ *
+ * @param $folder
+ *   (Optional) The folder where file is stored.
+ */
+function date_item_include($filename, $folder = 'includes') {
+  module_load_include('inc', 'date_item', $folder . '/' . $filename);
+}
+
+/**
+ * Include .inc files in a form context.
+ *
+ * Save information in the form_state so that cached forms will properly include things.
+ *
+ * @param $form_state
+ *   Form state array of the form to which include should be added.
+ *
+ * @param $filename
+ *   The base file name to be included.
+ *
+ * @param $folder
+ *   (Optional) The folder where file is stored.
+ */
+function date_item_form_include(&$form_state, $filename, $folder = 'includes') {
+
+  form_load_include($form_state, 'inc', 'date_item', $folder . '/' . $filename);
+}

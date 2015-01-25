@@ -1,0 +1,14 @@
+td,
+th,
+tr.even,
+tr.odd {
+  background-color: transparent;
+}
+
+td.active {
+  background-color: transparent;
+}
+
+thead .views-align-right:not(.views-field-views-bulk-operations) {
+  text-align: left;
+}

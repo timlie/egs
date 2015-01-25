@@ -1,0 +1,16 @@
+// Import external libraries.
+@import 'compass';
+@import 'breakpoint';
+@import 'singularitygs';
+
+// imports using globbing
+@import 'variables/**/*';
+@import 'abstractions/**/*';
+@import 'pdf/**/*';
+
+// invoice:
+// sites/all/modules/contrib/commerce_billy/modules/commerce_billy_pdf/css/pdf.css
+// sites/all/modules/erpal/erpal_invoice/modules/erpal_invoice_ui/css/invoice-pdf.css
+
+// order:
+// profiles/erpal_platform/modules/profile/erpal_commerce/modules/erpal_commerce_ui/css/pdf.css

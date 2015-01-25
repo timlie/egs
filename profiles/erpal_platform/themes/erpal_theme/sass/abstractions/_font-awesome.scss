@@ -1,0 +1,46 @@
+/**
+  sets content-attribute by given icon-trivial-name
+  @param {String} $name - icon-trivial-name
+  @requires $font-awesome-icons
+  @example
+  .foo:after {
+    @include font-awesome-content(music);
+    // content: "\e601";
+  }
+  */
+@mixin font-awesome-content($name) {
+  @if map-has-key($font-awesome-icons, $name) == true {
+    content: map-get($font-awesome-icons, $name);
+  } @else {
+    @error 'no icon for trivial "#{$name}" found';
+  }
+}
+
+/**
+  outputs content by given icon-trivial-name and font-family
+  @param {String} $name - icon-trivial-name
+  @requires {mixin} font-awesome-content
+  @requires %font-awesome
+  */
+@mixin font-awesome-icon($name) {
+  @extend %font-awesome;
+  @include font-awesome-content($name);
+}
+
+/**
+  better font rendering
+  @requires $font-family-awesome
+  */
+%font-awesome {
+  speak: none;
+  font-family: $font-family-awesome;
+  font-style: normal;
+  font-weight: normal;
+  font-variant: normal;
+  text-transform: none;
+  // line-height: 1;
+
+  /* Better Font Rendering */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}

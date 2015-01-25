@@ -1,0 +1,20 @@
+/** default element spacing */
+$default-spacing: 10px;
+
+/**
+  default-spacing shorthand
+  @alias $default-spacing
+  */
+$ds: $default-spacing;
+
+/** margin between different content-types or padding inside the main-content */
+$inner-spacing: 20px;
+
+/** larger spacing for content-seperation */
+$extended-spacing: 40px;
+
+/** */
+$transition-duration-default: .3s;
+
+/** */
+$pageheader-height: 50px;

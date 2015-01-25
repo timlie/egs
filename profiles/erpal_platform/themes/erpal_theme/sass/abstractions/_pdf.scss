@@ -1,0 +1,42 @@
+/**
+  @group pdf
+  @requires $font-size-minor
+*/
+%pdf-header {
+  font-size: $font-size-minor;
+  color: $pdf-border-color;
+  text-align: right;
+}
+
+/** @group pdf */
+%pdf-footer {
+  position: absolute;
+  bottom: 0;
+  padding-top: 4px;
+  border-top: 1px solid $pdf-border-color;
+  width: 100%;
+  font-size: 14px;
+  text-align: center;
+  color: $pdf-border-color;
+
+  .html & {
+    position: relative;
+    margin-top: $pdf-spacing;
+  }
+}
+
+/** @group pdf */
+%pdf-header-date {
+  margin: {
+    top: 25px;
+    left: 550px;
+  }
+  text-align: right;
+}
+
+/** @group pdf */
+%pdf-node-number {
+  position: relative;
+  top: 0;
+  padding: 15px 0;
+}
